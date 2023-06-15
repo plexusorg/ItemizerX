@@ -1,6 +1,3 @@
-group = rootProject.group
-version = rootProject.version
-
 dependencies {
     implementation(project(":v1_20_R1"))
     implementation(project(":v1_19_R3"))

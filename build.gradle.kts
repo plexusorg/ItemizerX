@@ -8,6 +8,7 @@ version = "2.0"
 
 subprojects {
     apply(plugin = "com.github.johnrengelman.shadow")
+    apply(plugin = "java")
     java.sourceCompatibility = JavaVersion.VERSION_17
 
     repositories {

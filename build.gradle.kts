@@ -26,6 +26,14 @@ subprojects {
             url = uri("https://maven.playpro.com/")
         }
     }
+
+    dependencies {
+        if (project.name != "shared") {
+            implementation(project(":shared"))
+        }
+
+        compileOnly("net.coreprotect:coreprotect:21.3")
+    }
 }
 
 tasks {

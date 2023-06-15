@@ -1,9 +1,10 @@
 name: ItemizerX
-version: 3.0
-api-version: 1.20
+version: 2.0
+api-version: 1.17
 description: A rewrite of Itemizer
 author: Focusvity, Telesphoreo
 main: dev.plex.itemizerx.ItemizerX
+folia-supported: true
 softdepend:
   - CoreProtect
 commands:

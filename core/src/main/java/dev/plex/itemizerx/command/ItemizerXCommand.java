@@ -1,7 +1,6 @@
-package dev.plex.itemizerx.v1_18_R1;
+package dev.plex.itemizerx.command;
 
-import dev.plex.itemizerx.CoreProtectBridge;
-import org.apache.commons.lang.StringUtils;
+import dev.plex.itemizerx.v1_20_R1.AttributeManager;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
@@ -30,7 +29,6 @@ import java.util.regex.Pattern;
 public class ItemizerXCommand implements CommandExecutor {
 
     final List<Material> POTIONS = Arrays.asList(Material.POTION, Material.LINGERING_POTION, Material.SPLASH_POTION);
-    CoreProtectBridge cpb = new CoreProtectBridge();
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String string, String[] args) {
@@ -43,7 +41,7 @@ public class ItemizerXCommand implements CommandExecutor {
             sender.sendMessage(ChatColor.AQUA + "ItemizerX " + ChatColor.GOLD + "v"
                     + Bukkit.getPluginManager().getPlugin("ItemizerX").getDescription().getVersion()
                     + ChatColor.AQUA + " by " + ChatColor.GOLD
-                    + StringUtils.join(Bukkit.getPluginManager().getPlugin("ItemizerX").getDescription().getAuthors(), ", "));
+                    + String.join(Bukkit.getPluginManager().getPlugin("ItemizerX").getDescription().getAuthors(), ", "));
             sender.sendMessage(ChatColor.AQUA + "Type " + ChatColor.GOLD + "/itemizer help "
                     + ChatColor.AQUA + "for help");
             return true;

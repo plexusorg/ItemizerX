@@ -1,11 +1,12 @@
 package dev.plex.itemizerx;
 
+import dev.plex.itemizerx.command.ItemizerXCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class ItemizerX extends JavaPlugin {
 
     public static ItemizerX plugin;
-    CoreProtectBridge cpb = new CoreProtectBridge();
+    public final CoreProtectBridge cpb = new CoreProtectBridge();
 
     @Override
     public void onLoad() {
@@ -18,7 +19,7 @@ public class ItemizerX extends JavaPlugin {
         cpb.getCoreProtect();
         switch (getNMSVersion()) {
             case "v1_20_R1": {
-                getCommand("itemizer").setExecutor(new dev.plex.itemizerx.v1_20_R1.ItemizerXCommand());
+                getCommand("itemizer").setExecutor(new ItemizerXCommand());
                 getCommand("itemizer").setTabCompleter(new dev.plex.itemizerx.v1_20_R1.ItemizerXTab());
                 return;
             }
@@ -58,11 +59,6 @@ public class ItemizerX extends JavaPlugin {
                 getServer().getPluginManager().disablePlugin(this);
             }
         }
-    }
-
-    public String getNMSVersion() {
-        String v = getServer().getClass().getPackage().getName();
-        return v.substring(v.lastIndexOf('.') + 1);
     }
 
     @Override

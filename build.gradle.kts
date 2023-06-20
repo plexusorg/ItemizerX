@@ -4,10 +4,12 @@ plugins {
 }
 
 group = "dev.plex"
-version = "2.0"
+version = "2.1"
 
 subprojects {
+    apply(plugin = "java")
     apply(plugin = "com.github.johnrengelman.shadow")
+    java.sourceCompatibility = JavaVersion.VERSION_17
 
     repositories {
         mavenCentral()
@@ -23,6 +25,14 @@ subprojects {
         maven {
             url = uri("https://maven.playpro.com/")
         }
+    }
+
+    dependencies {
+        if (project.name != "shared") {
+            implementation(project(":shared"))
+        }
+
+        compileOnly("net.coreprotect:coreprotect:21.3")
     }
 }
 

@@ -1,7 +1,6 @@
-package dev.plex.itemizerx.v1_18_R1;
+package dev.plex.itemizerx;
 
-import dev.plex.itemizerx.CoreProtectBridge;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
@@ -27,7 +26,7 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ItemizerXCommand implements CommandExecutor {
+public class ItemizerXCommand implements CommandExecutor, ItemizerXBase {
 
     final List<Material> POTIONS = Arrays.asList(Material.POTION, Material.LINGERING_POTION, Material.SPLASH_POTION);
     CoreProtectBridge cpb = new CoreProtectBridge();
@@ -419,7 +418,7 @@ public class ItemizerXCommand implements CommandExecutor {
                                 sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                                 return true;
                             }
-                            AttributeManager.addAttr(player, args);
+                            plugin.attr.addAttr(player, args);
                             return true;
                         }
                         case "remove" -> {
@@ -427,7 +426,7 @@ public class ItemizerXCommand implements CommandExecutor {
                                 sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                                 return true;
                             }
-                            AttributeManager.removeAttr(player, args[2]);
+                            plugin.attr.removeAttr(player, args[2]);
                             return true;
                         }
                         case "list" -> {
@@ -435,7 +434,7 @@ public class ItemizerXCommand implements CommandExecutor {
                                 sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                                 return true;
                             }
-                            AttributeManager.listAttr(player);
+                            plugin.attr.listAttr(player);
                             return true;
                         }
                         case "listall" -> {
@@ -444,7 +443,7 @@ public class ItemizerXCommand implements CommandExecutor {
                                 return true;
                             }
                             sender.sendMessage(colorize("&2Supported attributes: "
-                                    + "&e" + AttributeManager.Attributes.getAttributes()));
+                                    + "&e" + Attributes.getAttributes()));
                             return true;
                         }
                         default -> {

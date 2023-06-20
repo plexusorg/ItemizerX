@@ -1,5 +1,7 @@
 package dev.plex.itemizerx.v1_17_R1;
 
+import dev.plex.itemizerx.Attributes;
+import dev.plex.itemizerx.IAttributeManager;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.world.item.ItemStack;
@@ -12,9 +14,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class AttributeManager {
+public class AttributeManager implements IAttributeManager {
 
-    public static NBTTagList getAttrList(final ItemStack item) {
+    @Override
+    public NBTTagList getAttrList(final ItemStack item) {
         NBTTagList attrmod = item.getOrCreateTag().getList("AttributeModifiers", 10);
         if (attrmod == null) {
             item.getTag().set("AttributeModifiers", new NBTTagList());
@@ -22,7 +25,8 @@ public class AttributeManager {
         return item.getTag().getList("AttributeModifiers", 10);
     }
 
-    public static void addAttr(final Player player, final String[] args) {
+    @Override
+    public void addAttr(final Player player, final String[] args) {
         int op;
         if (args.length < 4) {
             player.sendMessage(colorize("&b/itemizer attr add <&fname&b> <&fstrength&b> [&fslot&b] &c- "
@@ -90,7 +94,8 @@ public class AttributeManager {
         player.sendMessage(colorize("&2Attribute added!"));
     }
 
-    public static void removeAttr(final Player player, final String string) {
+    @Override
+    public void removeAttr(final Player player, final String string) {
         final ItemStack nms = CraftItemStack.asNMSCopy(player.getInventory().getItemInMainHand());
         final NBTTagList attrmod = getAttrList(nms);
         final NBTTagList newList = new NBTTagList();
@@ -113,7 +118,8 @@ public class AttributeManager {
         player.sendMessage(colorize("&2Attribute removed!"));
     }
 
-    public static void listAttr(final Player player) {
+    @Override
+    public void listAttr(final Player player) {
         final ItemStack nms = CraftItemStack.asNMSCopy(player.getInventory().getItemInMainHand());
         final NBTTagList attrmod = getAttrList(nms);
         if (attrmod.size() == 0) {
@@ -128,52 +134,8 @@ public class AttributeManager {
         }
     }
 
-    private static String colorize(String string) {
+    @Override
+    public String colorize(String string) {
         return ChatColor.translateAlternateColorCodes('&', string);
-    }
-
-    public enum Attributes {
-
-        MAX_HEALTH("generic.max_health", 0),
-        FOLLOW_RANGE("generic.follow_range", 1),
-        KNOCKBACK_RESISTANCE("generic.knockback_resistance", 1),
-        MOVEMENT_SPEED("generic.movement_speed", 1),
-        DAMAGE("generic.attack_damage", 0),
-        ARMOR("generic.armor", 0),
-        ARMOR_TOUGHNESS("generic.armor_toughness", 0),
-        FLYING_SPEED("generic.flying_speed", 1),
-        ATTACK_SPEED("generic.attack_speed", 1),
-        LUCK("generic.luck", 0),
-        HORSE_JUMP("horse.jump_strength", 1),
-        ZOMBIE_REINFORCEMENTS("zombie.spawn_reinforcements", 1);
-
-        private final String mcName;
-        private final int op;
-
-        Attributes(String mcName, int op) {
-            this.mcName = mcName;
-            this.op = op;
-        }
-
-        public static Attributes get(String name) {
-            for (Attributes attr : values()) {
-                if (attr.name().equalsIgnoreCase(name) || attr.mcName.equalsIgnoreCase(name)) {
-                    return attr;
-                }
-            }
-            return null;
-        }
-
-        public static String getAttributes() {
-            return StringUtils.join(values(), ", ");
-        }
-
-        public static List<String> getAttributeList() {
-            List<String> attributes = new ArrayList<>();
-            for (Attributes attr : values()) {
-                attributes.add(attr.name());
-            }
-            return attributes;
-        }
     }
 }

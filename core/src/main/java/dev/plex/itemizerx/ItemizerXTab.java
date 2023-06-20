@@ -1,4 +1,4 @@
-package dev.plex.itemizerx.v1_19_R3;
+package dev.plex.itemizerx;
 
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -66,7 +66,7 @@ public class ItemizerXTab implements TabCompleter {
                     switch (args[1]) {
                         case "add":
                         case "remove": {
-                            return AttributeManager.Attributes.getAttributeList();
+                            return Attributes.getAttributeList();
                         }
                     }
                 }

@@ -518,6 +518,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                                 sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
                                 return true;
                             }
+                            // NPE to fix here
                             plugin.attr.removeAttr(player, args[2]);
                             return true;
                         }

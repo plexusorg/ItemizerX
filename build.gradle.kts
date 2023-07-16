@@ -37,6 +37,11 @@ subprojects {
 
         compileOnly("net.coreprotect:coreprotect:21.3")
     }
+    tasks {
+        assemble {
+            dependsOn("reobfJar")
+        }
+    }
 }
 
 tasks {
@@ -44,13 +49,6 @@ tasks {
         archiveBaseName.set("ItemizerX")
         archiveClassifier.set("")
         archiveVersion.set("")
-
-        // helper function to relocate a package into our package
-        fun reloc(pkg: String) = relocate(pkg, "io.papermc.paperweight.testplugin.dependency.$pkg")
-
-        // relocate cloud and it's transitive dependencies
-        reloc("cloud.commandframework")
-        reloc("io.leangen.geantyref")
     }
 
     compileJava {
@@ -60,7 +58,6 @@ tasks {
 
     assemble {
         dependsOn("shadowJar")
-        dependsOn("reobfJar")
     }
 
     jar {

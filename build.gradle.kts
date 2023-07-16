@@ -92,7 +92,7 @@ tasks {
     }
 
     shadowJar {
-        relocate("org.bstats", "dev.plex")
+        relocate("org.bstats", "dev.plex.metrics")
     }
 }
 

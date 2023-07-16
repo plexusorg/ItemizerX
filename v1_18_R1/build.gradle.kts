@@ -1,3 +1,7 @@
+apply(plugin = "io.papermc.paperweight.userdev")
+apply(plugin = "xyz.jpenilla.run-paper")
+
 dependencies {
-    compileOnly("org.spigotmc:spigot:1.18.1-R0.1-SNAPSHOT")
+    paperDevBundle("1.18.1-R0.1-SNAPSHOT")
+    implementation("net.kyori:adventure-text-minimessage:4.14.0")
 }

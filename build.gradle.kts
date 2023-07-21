@@ -56,7 +56,7 @@ bukkit {
     description = "A new way to edit your items"
     authors = listOf("Focusvity", "Telesphoreo")
     main = "dev.plex.itemizerx.ItemizerX"
-    apiVersion = "1.17"
+    apiVersion = "1.18"
     foliaSupported = true
     softDepend = listOf("CoreProtect")
     commands {

@@ -4,7 +4,8 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.world.item.ItemStack;
 import org.bukkit.entity.Player;
 
-public interface IAttributeManager {
+public interface IAttributeManager
+{
     ListTag getAttrList(final ItemStack item);
 
     void addAttr(final Player player, final String[] args);
@@ -12,6 +13,4 @@ public interface IAttributeManager {
     void removeAttr(final Player player, final String string);
 
     void listAttr(final Player player);
-
-    String colorize(String string);
 }

@@ -10,8 +10,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
-import org.apache.commons.lang.StringUtils;
-import org.bukkit.ChatColor;
+import org.apache.commons.lang3.StringUtils;
 import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 
@@ -157,11 +156,5 @@ public class AttributeManager implements IAttributeManager
             player.sendMessage(mm.deserialize("<yellow>" + Attributes.get(c.getString("AttributeName")).mcName
                     + ", " + c.getDouble("Amount")));
         }
-    }
-
-    @Override
-    public String colorize(String string)
-    {
-        return ChatColor.translateAlternateColorCodes('&', string);
     }
 }

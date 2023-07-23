@@ -4,9 +4,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import org.apache.commons.lang3.StringUtils;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.apache.commons.lang.StringUtils;
+import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -27,31 +28,34 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
+public class ItemizerXCompatCommand implements CommandExecutor, ItemizerXBase
 {
     final List<Material> POTIONS = Arrays.asList(Material.POTION, Material.LINGERING_POTION, Material.SPLASH_POTION);
     CoreProtectBridge cpb = new CoreProtectBridge();
-    MiniMessage mm = MiniMessage.miniMessage();
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String string, String[] args)
     {
         if (!sender.hasPermission("itemizer.use"))
         {
-            sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+            sender.sendMessage(colorize("&4You don't have permission to use this command!"));
             return true;
         }
 
         if (args.length == 0)
         {
-            sender.sendMessage(mm.deserialize("<aqua>ItemizerX <gold>v" + plugin.getDescription().getVersion() + "<aqua> by <gold>" + StringUtils.join(plugin.getDescription().getAuthors(), ", ")));
-            sender.sendMessage(mm.deserialize("<aqua>Type <gold><click:run_command:/itemizer help>/itemizer help</click> <aqua>for help"));
+            sender.sendMessage(ChatColor.AQUA + "ItemizerX " + ChatColor.GOLD + "v"
+                    + plugin.getDescription().getVersion()
+                    + ChatColor.AQUA + " by " + ChatColor.GOLD
+                    + StringUtils.join(plugin.getDescription().getAuthors(), ", "));
+            sender.sendMessage(ChatColor.AQUA + "Type " + ChatColor.GOLD + "/itemizer help "
+                    + ChatColor.AQUA + "for help");
             return true;
         }
 
         if (!(sender instanceof final Player player))
         {
-            sender.sendMessage(mm.deserialize("<dark_red>You must be a player to execute this command!"));
+            sender.sendMessage(colorize("&4You must be a player to execute this command!"));
             return true;
         }
 
@@ -65,46 +69,46 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
         {
             case "help" ->
             {
-                sender.sendMessage(mm.deserialize("""
-                        <dark_aqua>=============<white>[<light_purple>ItemizerX Commands<white>]<dark_aqua>=============
-                        <aqua>/itemizer name <<white>name<aqua>> <red>- <gold>Name your item
-                        <aqua>/itemizer id <<white>id<aqua>> <red>- <gold>Change the item's material
-                        <aqua>/itemizer lore <red>- <gold>Lore editing command
-                        <aqua>/itemizer potion <red>- <gold>Potion editing command
-                        <aqua>/itemizer attr <red>- <gold>Attribute editing command
-                        <aqua>/itemizer flag <red>- <gold>Flag editing command
-                        <aqua>/itemizer enchant <red>- <gold>Enchant editing command
-                        <aqua>/itemizer title <<white>name<aqua>> <red>- <gold>Set the book's title
-                        <aqua>/itemizer author <<white>name<aqua>> <red>- <gold>Set the book's author
-                        <aqua>/itemizer head <<white>name<aqua>> <red>- <gold>Set the player of the head
-                        <aqua>/itemizer sign <<white>line<aqua>> <<white>text<aqua>> <red>- <gold>Change the line on the sign
-                        <aqua>/itemizer clearall <red>- <gold>Clears all metadata from your item"""));
+                sender.sendMessage(colorize("""
+                        &3=============&f[&dItemizerX Commands&f]&3=============
+                        &b/itemizer name <&fname&b> &c- &6Name your item
+                        &b/itemizer id <&fid&b> &c- &6Change the item's material
+                        &b/itemizer lore &c- &6Lore editing command
+                        &b/itemizer potion &c- &6Potion editing command
+                        &b/itemizer attr &c- &6Attribute editing command
+                        &b/itemizer flag &c- &6Flag editing command
+                        &b/itemizer enchant &c- &6Enchant editing command
+                        &b/itemizer title <&fname&b> &c- &6Set the book's title
+                        &b/itemizer author <&fname&b> &c- &6Set the book's author
+                        &b/itemizer head <&fname&b> &c- &6Set the player of the head
+                        &b/itemizer sign <&fline&b> <&ftext&b> &c- &6Change the line on the sign
+                        &b/itemizer clearall &c- &6Clears all metadata from your item"""));
                 return true;
             }
             case "name" ->
             {
                 if (!sender.hasPermission("itemizer.name"))
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                    sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                     return true;
                 }
                 if (args.length == 1)
                 {
-                    sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Name Commands<white>]<dark_aqua>==============="));
-                    sender.sendMessage(mm.deserialize("<aqua>/itemizer name <<white>name<aqua>> <red>- <gold>Name your item"));
+                    sender.sendMessage(colorize("&3===============&f[&dName Commands&f]&3===============\n"
+                            + "&b/itemizer name <&fname&b> &c- &6Name your item"));
                 }
                 else
                 {
                     if (!hasItem)
                     {
-                        sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
+                        sender.sendMessage(colorize("&cYou do not have an item in your hand."));
                         return true;
                     }
-                    Component name = mm.deserialize(StringUtils.join(args, " ", 1, args.length));
+                    String name = colorize(StringUtils.join(args, " ", 1, args.length));
                     assert meta != null;
-                    meta.displayName(name);
+                    meta.setDisplayName(name);
                     item.setItemMeta(meta);
-                    sender.sendMessage(mm.deserialize("<dark_green>The name of the item in your hand has been set to <reset>'" + mm.serialize(name) + "<reset>'"));
+                    sender.sendMessage(colorize("&2The name of the item in your hand has been set to &f'" + name + "&f'"));
                 }
                 return true;
             }
@@ -112,50 +116,50 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
             {
                 if (!sender.hasPermission("itemizer.id"))
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                    sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                     return true;
                 }
                 if (args.length == 1)
                 {
-                    sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>ID Commands<white>]<dark_aqua>==============="));
-                    sender.sendMessage(mm.deserialize("<aqua>/itemizer id <<white>id<aqua>> <red>- <gold>Change the item's material"));
+                    sender.sendMessage(colorize("&3===============&f[&dID Commands&f]&3===============\n"
+                            + "&b/itemizer id <&fid&b> &c- &6Change the item's material"));
                     return true;
                 }
                 if (!hasItem)
                 {
-                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
+                    sender.sendMessage(colorize("&cYou do not have an item in your hand."));
                     return true;
                 }
                 Material material = Material.matchMaterial(args[1].toUpperCase());
                 if (material == null)
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>The material <white>\"" + args[1] + "<white>\" <dark_red>does not exist!"));
+                    sender.sendMessage(colorize("&4The material &f\"" + args[1] + "&f\"&4 does not exist!"));
                     return true;
                 }
                 item.setType(material);
-                sender.sendMessage(mm.deserialize("<dark_green>The material of the item has changed to <reset>'" + material.name() + "'"));
+                sender.sendMessage(colorize("&2The material of the item has changed to &f'" + material.name() + "'"));
                 return true;
             }
             case "lore" ->
             {
                 if (!sender.hasPermission("itemizer.lore"))
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                    sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                     return true;
                 }
                 if (args.length == 1)
                 {
-                    sender.sendMessage(mm.deserialize("""
-                            <dark_aqua>===============<white>[<light_purple>Lore Commands<white>]<dark_aqua>===============
-                            <aqua>/itemizer lore add <<white>text<aqua>> <red>- <gold>Add a line of text to your item's lore
-                            <aqua>/itemizer lore remove <<white>index<aqua>> <red>- <gold>Remove a line of text from your item's lore
-                            <aqua>/itemizer lore change <<white>index<aqua>> <<white>text<aqua>> <red>- <gold>Change a line of text in your item's lore
-                            <aqua>/itemizer lore clear <red>- <gold>Clear the item's lore"""));
+                    sender.sendMessage(colorize("""
+                            &3===============&f[&dLore Commands&f]&3===============
+                            &b/itemizer lore add <&ftext&b> &c- &6Add a line of text to your item's lore
+                            &b/itemizer lore remove <&findex&b> &c- &6Remove a line of text from your item's lore
+                            &b/itemizer lore change <&findex&b> <&ftext&b> &c- &6Change a line of text in your item's lore
+                            &b/itemizer lore clear &c- &6Clear the item's lore"""));
                     return true;
                 }
                 if (!hasItem)
                 {
-                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
+                    sender.sendMessage(colorize("&cYou do not have an item in your hand."));
                     return true;
                 }
                 else
@@ -166,39 +170,39 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                         {
                             if (!sender.hasPermission("itemizer.lore.add"))
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                                sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                                 return true;
                             }
                             if (args.length == 2)
                             {
-                                sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Lore Commands<white>]<dark_aqua>==============="));
-                                sender.sendMessage(mm.deserialize("<aqua>/itemizer lore add <<white>text<aqua>> <red>- <gold>Add a line of text to your item's lore"));
+                                sender.sendMessage(colorize("&3===============&f[&dLore Commands&f]&3===============\n"
+                                        + "&b/itemizer lore add <&ftext&b> &c- &6Add a line of text to your item's lore"));
                                 return true;
                             }
-                            Component lore = mm.deserialize(StringUtils.join(args, " ", 2, args.length));
+                            String lore = colorize(StringUtils.join(args, " ", 2, args.length));
                             assert meta != null;
-                            List<Component> lores = new ArrayList<>();
-                            if (meta.lore() != null)
+                            List<String> lores = new ArrayList<>();
+                            if (meta.getLore() != null)
                             {
-                                lores = meta.lore();
+                                lores = meta.getLore();
                             }
                             lores.add(lore);
-                            meta.lore(lores);
+                            meta.setLore(lores);
                             item.setItemMeta(meta);
-                            sender.sendMessage(mm.deserialize("<dark_green>Line <white>'" + mm.serialize(lore) + "<white>' <dark_green>added to the item's lore"));
+                            sender.sendMessage(colorize("&2Line &f'" + lore + "&f'&2 added to the item's lore"));
                             return true;
                         }
                         case "remove" ->
                         {
                             if (!sender.hasPermission("itemizer.lore.remove"))
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                                sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                                 return true;
                             }
                             if (args.length == 2)
                             {
-                                sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Lore Commands<white>]<dark_aqua>==============="));
-                                sender.sendMessage(mm.deserialize("<aqua>/itemizer lore remove <<white>index<aqua>> <red>- <gold>Remove a line of text from your item's lore"));
+                                sender.sendMessage(colorize("&3===============&f[&dLore Commands&f]&3===============\n"
+                                        + "&b/itemizer lore remove <&findex&b> &c- &6Remove a line of text from your item's lore"));
                                 return true;
                             }
                             Integer index = parseInt(sender, args[2]);
@@ -207,38 +211,38 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                                 return true;
                             }
                             assert meta != null;
-                            List<Component> lores;
-                            if (meta.lore() != null)
+                            List<String> lores;
+                            if (meta.getLore() != null)
                             {
-                                lores = meta.lore();
+                                lores = meta.getLore();
                             }
                             else
                             {
-                                sender.sendMessage(mm.deserialize("<yellow>This item has no lores."));
+                                sender.sendMessage(colorize("&eThis item has no lores."));
                                 return true;
                             }
                             if (index > lores.size())
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>The item's lore doesn't have line <white>'" + index + "'"));
+                                sender.sendMessage(colorize("&4The item's lore doesn't have line &f'" + index + "'"));
                                 return true;
                             }
                             lores.remove(index - 1);
-                            meta.lore(lores);
+                            meta.setLore(lores);
                             item.setItemMeta(meta);
-                            sender.sendMessage(mm.deserialize("<dark_green>Line <white>'" + index + "<white>' <dark_green>removed from the item's lore"));
+                            sender.sendMessage(colorize("&2Line &f'" + index + "&f'&2 removed from the item's lore"));
                             return true;
                         }
                         case "change" ->
                         {
                             if (!sender.hasPermission("itemizer.lore.change"))
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                                sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                                 return true;
                             }
                             if (args.length < 4)
                             {
-                                sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Lore Commands<white>]<dark_aqua>==============="));
-                                sender.sendMessage(mm.deserialize("<aqua>/itemizer lore change <<white>index<aqua>> <<white>text<aqua>> <red>- <gold>Change a line of text in your item's lore"));
+                                sender.sendMessage(colorize("&3===============&f[&dLore Commands&f]&3===============\n"
+                                        + "&b/itemizer lore change <&findex&b> <&ftext&b> &c- &6Change a line of text in your item's lore"));
                                 return true;
                             }
                             Integer index = parseInt(sender, args[2]);
@@ -246,50 +250,50 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                             {
                                 return true;
                             }
-                            Component lore = mm.deserialize(StringUtils.join(args, " ", 3, args.length));
+                            String lore = colorize(StringUtils.join(args, " ", 3, args.length));
                             assert meta != null;
-                            List<Component> lores;
-                            if (meta.lore() != null)
+                            List<String> lores;
+                            if (meta.getLore() != null)
                             {
-                                lores = meta.lore();
+                                lores = meta.getLore();
                             }
                             else
                             {
-                                sender.sendMessage(mm.deserialize("<yellow>This item has no lores."));
+                                sender.sendMessage(colorize("&eThis item has no lores."));
                                 return true;
                             }
                             if (index > lores.size())
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>The item's lore doesn't have line <white>'" + index + "'"));
+                                sender.sendMessage(colorize("&4The item's lore doesn't have line &f'" + index + "'"));
                                 return true;
                             }
                             lores.set(index - 1, lore);
-                            meta.lore(lores);
+                            meta.setLore(lores);
                             item.setItemMeta(meta);
-                            sender.sendMessage(mm.deserialize("<dark_gree>Line <white>'" + index + "' <dark_green>has been changed to <white>'" + lore + "<white>'"));
+                            sender.sendMessage(colorize("&2Line &f'" + index + "'&2 has changed to &f'" + lore + "&f'"));
                             return true;
                         }
                         case "clear" ->
                         {
                             if (!sender.hasPermission("itemizer.lore.clear"))
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                                sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                                 return true;
                             }
                             assert meta != null;
-                            if (meta.lore() == null || meta.lore().isEmpty())
+                            if (meta.getLore() == null || meta.getLore().isEmpty())
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>The item has no lores."));
+                                sender.sendMessage(colorize("&4The item has no lores."));
                                 return true;
                             }
-                            meta.lore(null);
+                            meta.setLore(null);
                             item.setItemMeta(meta);
-                            sender.sendMessage(mm.deserialize("<dark_green>The item's lore has been cleared!"));
+                            sender.sendMessage(colorize("&2The item's lore has been cleared!"));
                             return true;
                         }
                         default ->
                         {
-                            sender.sendMessage(mm.deserialize("<aqua>Unknown sub-command. Type <gold><click:run_command:/itemizer lore</click> <aqua>for help."));
+                            sender.sendMessage(colorize("&bUnknown sub-command. Type &6/itemizer lore &bfor help."));
                             return true;
                         }
                     }
@@ -299,23 +303,23 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
             {
                 if (!sender.hasPermission("itemizer.potion"))
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                    sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                     return true;
                 }
                 if (args.length == 1)
                 {
-                    sender.sendMessage(mm.deserialize("""
-                            <dark_aqua>===============<white>[<light_purple>Potion Commands<white>]<dark_aqua>===============
-                            <aqua>/itemizer potion add <<white>effect<aqua>> <<white>level<aqua>> <<white>time[tick]<aqua>> <red>- <gold>Add a potion effect
-                            <aqua>/itemizer potion remove <<white>effect<aqua>> <red>- <gold>Remove a potion effect
-                            <aqua>/itemizer potion change <<white>name<aqua>> <red>- <gold>Change the potion type
-                            <aqua>/itemizer potion color <<white>hexcolor<aqua>> <red>- <gold>Set the potion color
-                            <aqua>/itemizer potion list <red>- <gold>List all potion effects"""));
+                    sender.sendMessage(colorize("""
+                            &3===============&f[&dPotion Commands&f]&3===============
+                            &b/itemizer potion add <&feffect&b> <&flevel&b> <&ftime[tick]&b> &c- &6Add a potion effect
+                            &b/itemizer potion remove <&feffect&b> &c- &6Remove a potion effect
+                            &b/itemizer potion change <&fname&b> &c- &6Change the potion type
+                            &b/itemizer potion color <&fhexcolor&b> &c- &6Set the potion color
+                            &b/itemizer potion list &c- &6List all potion effects"""));
                     return true;
                 }
                 if (!hasPotion)
                 {
-                    sender.sendMessage(mm.deserialize("<red>You do not have a potion in your hand."));
+                    sender.sendMessage(colorize("&cYou do not have a potion in your hand."));
                     return true;
                 }
                 else
@@ -326,19 +330,19 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                         {
                             if (!sender.hasPermission("itemizer.potion.add"))
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                                sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                                 return true;
                             }
                             if (args.length < 5)
                             {
-                                sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Potion Commands<white>]<dark_aqua>==============="));
-                                sender.sendMessage(mm.deserialize("<aqua>/itemizer potion add <<white>effect<aqua>> <<white>level<aqua>> <<white>time[tick]<aqua>> <red>- <gold>Add a potion effect"));
+                                sender.sendMessage(colorize("&3===============&f[&dPotion Commands&f]&3===============\n"
+                                        + "&b/itemizer potion add <&feffect&b> <&flevel&b> <&ftime[tick]&b> &c- &6Add a potion effect"));
                                 return true;
                             }
                             PotionEffectType potType = PotionEffectType.getByName(args[2].toUpperCase());
                             if (potType == null)
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>The potion <white>\"" + args[2] + "<white>\" <dark_red>does not exist!"));
+                                sender.sendMessage(colorize("&4The potion &f\"" + args[2] + "&f\"&4 does not exist!"));
                                 return true;
                             }
                             Integer level = parseInt(sender, args[3]);
@@ -352,79 +356,82 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                             assert potionMeta != null;
                             if (potionMeta.hasCustomEffect(pot.getType()))
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>This potion already has <white>" + pot.getType().getName()));
+                                sender.sendMessage(colorize("&4This potion already has &f" + pot.getType().getName()));
                                 return true;
                             }
                             potionMeta.addCustomEffect(pot, false);
                             item.setItemMeta(potionMeta);
-                            sender.sendMessage(mm.deserialize(pot.getType().getName() + " <dark_green>has been added to the potion"));
+                            sender.sendMessage(colorize(pot.getType().getName() + " &2has been added to the potion"));
                             return true;
                         }
                         case "remove" ->
                         {
                             if (!sender.hasPermission("itemizer.potion.remove"))
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                                sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                                 return true;
                             }
                             if (args.length == 2)
                             {
-                                sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Potion Commands<white>]<dark_aqua>==============="));
-                                sender.sendMessage(mm.deserialize("<aqua>/itemizer potion remove <<white>effect<aqua>> <red>- <gold>Remove a potion effect"));
+                                sender.sendMessage(colorize("&3===============&f[&dPotion Commands&f]&3===============\n"
+                                        + "&b/itemizer potion remove <&feffect&b> &c- &6Remove a potion effect"));
                                 return true;
                             }
                             PotionEffectType potType = PotionEffectType.getByName(args[2].toUpperCase());
                             if (potType == null)
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>The potion effect <white>\"" + args[2] + "<white>\" <dark_red>does not exist!"));
+                                sender.sendMessage(colorize("&4The potion effect &f\"" + args[2] + "&f\"&4 does not exist!"));
                                 return true;
                             }
                             final PotionMeta potionMeta = (PotionMeta)meta;
                             assert potionMeta != null;
                             if (!potionMeta.hasCustomEffect(potType))
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>This potion does not have <white>" + potType.getName()));
+                                sender.sendMessage(colorize("This potion does not have &f" + potType.getName()));
                                 return true;
                             }
                             potionMeta.removeCustomEffect(potType);
                             item.setItemMeta(potionMeta);
-                            sender.sendMessage(mm.deserialize(potType.getName() + " <dark_green>has been removed from the potion"));
+                            sender.sendMessage(colorize(potType.getName() + " &2has been removed from the potion"));
                             return true;
                         }
                         case "change" ->
                         {
                             if (!sender.hasPermission("itemizer.potion.change"))
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                                sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                                 return true;
                             }
                             if (args.length == 2)
                             {
-                                sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Potion Commands<white>]<dark_aqua>==============="));
-                                sender.sendMessage(mm.deserialize("<aqua>/itemizer potion change <<white>name<aqua>> <red>- <gold>Change the potion type"));
+                                sender.sendMessage(colorize("&3===============&f[&dPotion Commands&f]&3===============\n"
+                                        + "&b/itemizer potion change <&fname&b> &c- &6Change the potion type"));
                                 return true;
                             }
                             Material material = Material.matchMaterial(args[2]);
                             if (material == null || !POTIONS.contains(material))
                             {
-                                sender.sendMessage(mm.deserialize(material != null ? "<white>'" + material.name() + "' <dark_red>is not a potion type!" : "<dark_red>That material doesn't exist!"));
+                                sender.sendMessage(colorize(material != null ?
+                                        "&f'" + material.name() + "' &4is not a potion type!"
+                                        :
+                                        "&4That material doesn't exist!"));
                                 return true;
                             }
                             item.setType(material);
-                            sender.sendMessage(mm.deserialize("<dark_green>The potion in hand has changed to <white>'" + material.name() + "'"));
+                            sender.sendMessage(colorize("&2The potion in hand has changed to &f'" + material.name() + "'"));
                             return true;
                         }
                         case "color" ->
                         {
                             if (!sender.hasPermission("itemizer.potion.color"))
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                                sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                                 return true;
                             }
                             if (args.length < 3)
                             {
-                                sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Potion Commands<white>]<dark_aqua>==============="));
-                                sender.sendMessage(mm.deserialize("<aqua>/itemizer potion color <<white>hexcolor<aqua>> <red>- <gold>Set the potion color"));
+                                sender.sendMessage(colorize("&3===============&f[&dPotion Commands&f]&3===============\n"
+                                        + "&b/itemizer potion color <&fhexcolor&b> &c- &6Set a potion color"));
                                 return true;
                             }
                             final PotionMeta potionMeta = (PotionMeta)meta;
@@ -435,11 +442,11 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                                 Color color = Color.fromRGB(awtColor.getRed(), awtColor.getGreen(), awtColor.getBlue());
                                 potionMeta.setColor(color);
                                 item.setItemMeta(potionMeta);
-                                sender.sendMessage(mm.deserialize(args[2] + " <dark_green>has been set as potion color"));
+                                sender.sendMessage(colorize(args[2] + " &2has been set as potion color"));
                             }
                             catch (NumberFormatException ignored)
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>The hex <white>\"" + args[2] + "<white>\" <dark_red>is invalid!"));
+                                sender.sendMessage(colorize("&4The hex &f\"" + args[2] + "&f\"&4 is invalid!"));
                                 return true;
                             }
                             return true;
@@ -448,7 +455,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                         {
                             if (!sender.hasPermission("itemizer.potion.list"))
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                                sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                                 return true;
                             }
                             StringBuilder sb = new StringBuilder();
@@ -457,12 +464,13 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                             {
                                 sb.append(", ").append(effects[i].getName());
                             }
-                            sender.sendMessage(mm.deserialize("<dark_green>Available potion effects: <yellow>" + sb.toString().replaceFirst(", ", "")));
+                            sender.sendMessage(colorize("&2Available potion effects: &e"
+                                    + sb.toString().replaceFirst(", ", "")));
                             return true;
                         }
                         default ->
                         {
-                            sender.sendMessage(mm.deserialize("<aqua>Unknown sub-command. Type <gold><click:run_command:/itemizer potion>/itemizer potion</click> <aqua>for help."));
+                            sender.sendMessage(colorize("&bUnknown sub-command. Type &6/itemizer potion &bfor help."));
                             return true;
                         }
                     }
@@ -472,22 +480,22 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
             {
                 if (!sender.hasPermission("itemizer.attr"))
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                    sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                     return true;
                 }
                 if (args.length == 1)
                 {
-                    sender.sendMessage(mm.deserialize("""
-                            <dark_aqua>===============<white>[<light_purple>Attribute Commands<white>]<dark_aqua>===============
-                            <aqua>/itemizer attr add <<white>name<aqua>> <<white>strength<aqua>> [<white>slot<aqua>] <red>- <gold>Add an attribute
-                            <aqua>/itemizer attr remove <<white>name<aqua>> <red>- <gold>Remove an attribute
-                            <aqua>/itemizer attr list <red>- <gold>List all item's attributes
-                            <aqua>/itemizer attr listall <red>- <gold>List all supported attributes"""));
+                    sender.sendMessage(colorize("""
+                            &3===============&f[&dAttribute Commands&f]&3===============
+                            &b/itemizer attr add <&fname&b> <&fstrength&b> [&fslot&b] &c- &6Add an attribute
+                            &b/itemizer attr remove <&fname&b> &c- &6Remove an attribute
+                            &b/itemizer attr list &c- &6List all item's attributes
+                            &b/itemizer attr listall &c- &6List all supported attributes"""));
                     return true;
                 }
                 if (!hasItem)
                 {
-                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
+                    sender.sendMessage(colorize("&cYou do not have an item in your hand."));
                     return true;
                 }
                 else
@@ -498,7 +506,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                         {
                             if (!sender.hasPermission("itemizer.attr.add"))
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                                sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                                 return true;
                             }
                             plugin.attr.addAttr(player, args);
@@ -508,10 +516,9 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                         {
                             if (!sender.hasPermission("itemizer.attr.remove"))
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                                sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                                 return true;
                             }
-                            // NPE to fix here
                             plugin.attr.removeAttr(player, args[2]);
                             return true;
                         }
@@ -519,7 +526,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                         {
                             if (!sender.hasPermission("itemizer.attr.list"))
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                                sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                                 return true;
                             }
                             plugin.attr.listAttr(player);
@@ -529,15 +536,16 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                         {
                             if (!sender.hasPermission("itemizer.attr.listall"))
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                                sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                                 return true;
                             }
-                            sender.sendMessage(mm.deserialize("<dark_green>Supported attributes: <yellow>" + Attributes.getAttributes()));
+                            sender.sendMessage(colorize("&2Supported attributes: "
+                                    + "&e" + Attributes.getAttributes()));
                             return true;
                         }
                         default ->
                         {
-                            sender.sendMessage(mm.deserialize("<aqua>Unknown sub-command. Type <gold><click:run_command:/itemizer attr>/itemizer attr</click> <aqua>for help."));
+                            sender.sendMessage(colorize("&bUnknown sub-command. Type &6/itemizer attr &bfor help."));
                             return true;
                         }
                     }
@@ -547,22 +555,22 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
             {
                 if (!sender.hasPermission("itemizer.flag"))
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                    sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                     return true;
                 }
                 if (args.length == 1)
                 {
-                    sender.sendMessage(mm.deserialize("""
-                            <dark_aqua>===============<white>[<light_purple>Flag Commands<white>]<dark_aqua>===============
-                            <aqua>/itemizer flag add <<white>name<aqua> <red>- <gold>Add a flag
-                            <aqua>/itemizer flag remove <<white>name<aqua> <red>- <gold>Remove a flag
-                            <aqua>/itemizer flag list <red>- <gold>List all item's flags
-                            <aqua>/itemizer flag listall <red>- <gold>List all available flags"""));
+                    sender.sendMessage(colorize("""
+                            &3===============&f[&dFlag Commands&f]&3===============
+                            &b/itemizer flag add <&fname&b> &c- &6Add a flag
+                            &b/itemizer flag remove <&fname&b> &c- &6Remove a flag
+                            &b/itemizer flag list &c- &6List all item's flag
+                            &b/itemizer flag listall &c- &6List all available flags"""));
                     return true;
                 }
                 if (!hasItem)
                 {
-                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
+                    sender.sendMessage(colorize("&cYou do not have an item in your hand."));
                     return true;
                 }
                 switch (args[1])
@@ -571,13 +579,13 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                     {
                         if (!sender.hasPermission("itemizer.flag.add"))
                         {
-                            sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                            sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                             return true;
                         }
                         if (args.length == 2)
                         {
-                            sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Flag Commands<white>]<dark_aqua>==============="));
-                            sender.sendMessage(mm.deserialize("<aqua>/itemizer flag add <<white>name<aqua> <red>- <gold>Add a flag"));
+                            sender.sendMessage(colorize("&3===============&f[&dFlag Commands&f]&3===============\n"
+                                    + "&b/itemizer flag add <&fname&b> &c- &6Add a flag"));
                             return true;
                         }
                         ItemFlag flag = null;
@@ -590,31 +598,31 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                         }
                         if (flag == null)
                         {
-                            sender.sendMessage(mm.deserialize("<dark_red>The flag <white>\"" + args[2] + "<white>\" does not exist!"));
+                            sender.sendMessage(colorize("&4The flag &f\"" + args[2] + "&f\" does not exist!"));
                             return true;
                         }
                         assert meta != null;
                         if (meta.getItemFlags().contains(flag))
                         {
-                            sender.sendMessage(mm.deserialize("<dark_red>The flag <white>'" + args[2].toUpperCase() + "' <dark_red>is already added to the item!"));
+                            sender.sendMessage(colorize("&4The flag &f'" + args[2].toUpperCase() + "' &4already added to the item!"));
                             return true;
                         }
                         meta.addItemFlags(flag);
                         item.setItemMeta(meta);
-                        sender.sendMessage(mm.deserialize("<dark_green>The flag <white>'" + args[2].toUpperCase() + "' <dark_green>has been added to your item!"));
+                        sender.sendMessage(colorize("&2The flag &f'" + args[2].toUpperCase() + "' &2has been added to your item!"));
                         return true;
                     }
                     case "remove" ->
                     {
                         if (!sender.hasPermission("itemizer.flag.remove"))
                         {
-                            sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                            sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                             return true;
                         }
                         if (args.length == 2)
                         {
-                            sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Flag Commands<white>]<dark_aqua>==============="));
-                            sender.sendMessage(mm.deserialize("<aqua>/itemizer flag remove <<white>name<aqua> <red>- <gold>Remove a flag"));
+                            sender.sendMessage(colorize("&3===============&f[&dFlag Commands&f]&3===============\n"
+                                    + "&b/itemizer flag remove <&fname&b> &c- &6Remove a flag"));
                             return true;
                         }
                         ItemFlag flag = null;
@@ -627,49 +635,51 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                         }
                         if (flag == null)
                         {
-                            sender.sendMessage(mm.deserialize("<dark_red>The flag <white>\"" + args[2] + "<white>\" does not exist!"));
+                            sender.sendMessage(colorize("&4The flag &f\"" + args[2] + "&f\" does not exist!"));
                             return true;
                         }
                         assert meta != null;
                         if (!meta.getItemFlags().contains(flag))
                         {
-                            sender.sendMessage(mm.deserialize("<dark_red>The flag <white>'" + args[2].toUpperCase() + "<white>' <dark_red>has not been added to the item!"));
+                            sender.sendMessage(colorize("&4The flag &f'" + args[2].toUpperCase() + "' &4has not been added the item!"));
                             return true;
                         }
                         meta.removeItemFlags(flag);
                         item.setItemMeta(meta);
-                        sender.sendMessage(mm.deserialize("<dark_green>The flag <white>'" + args[2].toUpperCase() + "<white>' <dark_green>has been removed from your item!"));
+                        sender.sendMessage(colorize("&2The flag &f'" + args[2].toUpperCase() + "' &2has been removed from your item!"));
                         return true;
                     }
                     case "list" ->
                     {
                         if (!sender.hasPermission("itemizer.flag.list"))
                         {
-                            sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                            sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                             return true;
                         }
                         assert meta != null;
                         if (Objects.requireNonNull(meta.getItemFlags()).isEmpty())
                         {
-                            sender.sendMessage(mm.deserialize("<dark_red>The item in your hand does not have any flags"));
+                            sender.sendMessage(colorize("&4The item in your hand does not have any flags"));
                             return true;
                         }
-                        sender.sendMessage(mm.deserialize("<dark_green>Item flags: <yellow>" + StringUtils.join(meta.getItemFlags(), ", ")));
+                        sender.sendMessage(colorize("&2Item flags: &e"
+                                + StringUtils.join(meta.getItemFlags(), ", ")));
                         return true;
                     }
                     case "listall" ->
                     {
                         if (!sender.hasPermission("itemizer.flag.listall"))
                         {
-                            sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                            sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                             return true;
                         }
-                        sender.sendMessage(mm.deserialize("<dark_green>Available item flags: <yellow>" + StringUtils.join(ItemFlag.values(), ", ")));
+                        sender.sendMessage(colorize("&2Available item flags: &e"
+                                + StringUtils.join(ItemFlag.values(), ", ")));
                         return true;
                     }
                     default ->
                     {
-                        sender.sendMessage(mm.deserialize("<aqua>Unknown sub-command. Type <gold><click:run_command:/itemizer flag>/itemizer flag</click> <aqua>for help."));
+                        sender.sendMessage(colorize("&bUnknown sub-command. Type &6/itemizer flag &bfor help"));
                         return true;
                     }
                 }
@@ -678,22 +688,22 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
             {
                 if (!sender.hasPermission("itemizer.enchant"))
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                    sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                     return true;
                 }
                 if (args.length == 1)
                 {
-                    sender.sendMessage(mm.deserialize("""
-                            <dark_aqua>===============<white>[<light_purple>Enchant Commands<white>]<dark_aqua>===============
-                            <aqua>/itemizer enchant add <<white>name<aqua>> <<white>level<aqua>> <red>- <gold>Add an enchant
-                            <aqua>/itemizer enchant remove <<white>name<aqua>> <red>- <gold>Remove an enchant
-                            <aqua>/itemizer enchant list <red>- <gold>List all item's enchants
-                            <aqua>/itemizer enchant listall <red>- <gold>List all available enchants"""));
+                    sender.sendMessage(colorize("""
+                            &3===============&f[&dEnchant Commands&f]&3===============
+                            &b/itemizer enchant add <&fname&b> <&flevel&b> &c- &6Add an enchant
+                            &b/itemizer enchant remove <&fname&b> &c- &6Remove an enchant
+                            &b/itemizer enchant list &c- &6List all item's enchants
+                            &b/itemizer enchant listall &c- &6List all available enchants"""));
                     return true;
                 }
                 if (!hasItem)
                 {
-                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
+                    sender.sendMessage(colorize("&cYou do not have an item in your hand."));
                     return true;
                 }
                 switch (args[1])
@@ -702,19 +712,19 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                     {
                         if (!sender.hasPermission("itemizer.enchant.add"))
                         {
-                            sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                            sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                             return true;
                         }
                         if (args.length < 4)
                         {
-                            sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Enchant Commands<white>]<dark_aqua>==============="));
-                            sender.sendMessage(mm.deserialize("<aqua>/itemizer enchant add <<white>name<aqua>> <<white>level<aqua>> <red>- <gold>Add an enchant"));
+                            sender.sendMessage(colorize("&3===============&f[&dEnchant Commands&f]&3===============\n"
+                                    + "&b/itemizer enchant add <&fname&b> <&flevel&b> &c- &6Add an enchant"));
                             return true;
                         }
                         final Enchantment ench = EnchantmentWrapper.getByKey(NamespacedKey.minecraft(args[2].toLowerCase()));
                         if (ench == null)
                         {
-                            sender.sendMessage(mm.deserialize("<dark_red>The enchantment <white>'" + args[2] + "<white>' <dark_red>does not exist!"));
+                            sender.sendMessage(colorize("&4The enchantment &f'" + args[2] + "&f' &4does not exist!"));
                             return true;
                         }
                         Integer level = parseInt(sender, args[3]);
@@ -723,64 +733,65 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                             return true;
                         }
                         item.addUnsafeEnchantment(ench, level);
-                        sender.sendMessage(mm.deserialize("<dark_green>The enchant <white>'" + ench.getKey().getKey() + "' <dark_green>has been added to your item"));
+                        sender.sendMessage(colorize("&2The enchant &f'" + ench.getKey().getKey() + "' &2has been added to your item"));
                         return true;
                     }
                     case "remove" ->
                     {
                         if (!sender.hasPermission("itemizer.enchant.remove"))
                         {
-                            sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                            sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                             return true;
                         }
                         if (args.length == 2)
                         {
-                            sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Enchant Commands<white>]<dark_aqua>==============="));
-                            sender.sendMessage(mm.deserialize("<aqua>/itemizer enchant remove <<white>name<aqua>> <red>- <gold>Remove an enchant"));
+                            sender.sendMessage(colorize("&3===============&f[&dEnchant Commands&f]&3===============\n"
+                                    + "&b/itemizer enchant remove <&fname&b> &c- &6Remove an enchant"));
                             return true;
                         }
                         final Enchantment ench = EnchantmentWrapper.getByKey(NamespacedKey.minecraft(args[2].toLowerCase()));
                         if (ench == null)
                         {
-                            sender.sendMessage(mm.deserialize("<dark_red>The enchantment <white>'" + args[2] + "<white>' <dark_red>does not exist!"));
+                            sender.sendMessage(colorize("&4The enchantment &f'" + args[2] + "&f' &4does not exist!"));
                             return true;
                         }
                         assert meta != null;
                         if (Objects.requireNonNull(meta.getEnchants()).isEmpty())
                         {
-                            sender.sendMessage(mm.deserialize("<dark_red>This item doesn't hold any enchants"));
+                            sender.sendMessage(colorize("&4This item doesn't hold any enchants"));
                             return true;
                         }
                         if (!meta.getEnchants().containsKey(ench))
                         {
-                            sender.sendMessage(mm.deserialize("<dark_red>This item doesn't have <white<'" + ench.getKey().getKey() + "' <dark_red>enchant!"));
+                            sender.sendMessage(colorize("&4This item doesn't have &f'" + ench.getKey().getKey() + "' &4enchant!"));
                             return true;
                         }
                         item.removeEnchantment(ench);
-                        sender.sendMessage(mm.deserialize("<dark_green>The enchant <white>'" + ench.getKey().getKey() + "' <dark_green>has been removed from your item"));
+                        sender.sendMessage(colorize("&2The enchant &f'" + ench.getKey().getKey() + "' &2has been removed from your item"));
                         return true;
                     }
                     case "list" ->
                     {
                         if (!sender.hasPermission("itemizer.enchant.list"))
                         {
-                            sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                            sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                             return true;
                         }
                         assert meta != null;
                         if (Objects.requireNonNull(meta.getEnchants()).isEmpty())
                         {
-                            sender.sendMessage(mm.deserialize("<dark_red>This item doesn't hold any enchants"));
+                            sender.sendMessage(colorize("&4This item doesn't hold any enchants"));
                             return true;
                         }
-                        sender.sendMessage(mm.deserialize("<dark_green>Item enchants: <yellow>" + StringUtils.join(meta.getEnchants().keySet(), ", ")));
+                        sender.sendMessage(colorize("&2Item enchants: &e"
+                                + StringUtils.join(meta.getEnchants().keySet(), ", ")));
                         return true;
                     }
                     case "listall" ->
                     {
                         if (!sender.hasPermission("itemizer.enchant.listall"))
                         {
-                            sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                            sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                             return true;
                         }
                         StringBuilder sb = new StringBuilder();
@@ -789,12 +800,13 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                         {
                             sb.append(", ").append(enchantments[i].getKey().getKey());
                         }
-                        sender.sendMessage(mm.deserialize("<dark_green>Available item enchants: <yellow>" + sb.toString().replaceFirst(", ", "")));
+                        sender.sendMessage(colorize("&2Available item enchants: &e"
+                                + sb.toString().replaceFirst(", ", "")));
                         return true;
                     }
                     default ->
                     {
-                        sender.sendMessage(mm.deserialize("<aqua>Unknown sub-command. Type <gold><click:run_command:/itemizer enchant>/itemizer enchant</click> <aqua>for help."));
+                        sender.sendMessage(colorize("&bUnknown sub-command. Type &6/itemizer enchant &bfor help."));
                         return true;
                     }
                 }
@@ -803,70 +815,70 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
             {
                 if (!sender.hasPermission("itemizer.title"))
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                    sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                     return true;
                 }
                 if (args.length == 1)
                 {
-                    sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Title Command<white>]<dark_aqua>==============="));
-                    sender.sendMessage(mm.deserialize("<aqua>/itemizer title <<white>name<aqua>> <red>- <gold>Set the book's title"));
+                    sender.sendMessage(colorize("&3===============&f[&dTitle Command&f]&3===============\n"
+                            + "&b/itemizer title <&fname&b> &c- &6Set the book's title"));
                     return true;
                 }
                 if (!hasBook)
                 {
-                    sender.sendMessage(mm.deserialize("<red>You do not have a Written Book in your hand."));
+                    sender.sendMessage(colorize("&cYou do not have a Written Book in your hand."));
                     return true;
                 }
-                Component name = mm.deserialize(StringUtils.join(args, " ", 1, args.length));
+                String name = colorize(StringUtils.join(args, " ", 1, args.length));
                 final BookMeta bookMeta = (BookMeta)meta;
                 assert bookMeta != null;
-                bookMeta.title(name);
+                bookMeta.setTitle(name);
                 item.setItemMeta(bookMeta);
-                sender.sendMessage(mm.deserialize("<dark_green>The title of the book has been set to <white'" + name + "<white>'"));
+                sender.sendMessage(colorize("&2The title of the book has been set to &f'" + name + "&f'"));
                 return true;
             }
             case "author" ->
             {
                 if (!sender.hasPermission("itemizer.author"))
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                    sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                     return true;
                 }
                 if (args.length == 1)
                 {
-                    sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Author Command<white>]<dark_aqua>==============="));
-                    sender.sendMessage(mm.deserialize("<aqua>/itemizer author <<white>name<aqua>> <red>- <gold>Set the book's author"));
+                    sender.sendMessage(colorize("&3===============&f[&dAuthor Command&f]&3===============\n"
+                            + "&b/itemizer author <&fname&b> &c- &6Set the book's author"));
                     return true;
                 }
                 if (!hasBook)
                 {
-                    sender.sendMessage(mm.deserialize("<red>You do not have a Written Book in your hand."));
+                    sender.sendMessage(colorize("&cYou do not have a Written Book in your hand."));
                     return true;
                 }
-                Component name = mm.deserialize(args[1]);
+                String name = colorize(args[1]);
                 final BookMeta bookMeta = (BookMeta)meta;
                 assert bookMeta != null;
-                bookMeta.author(name);
+                bookMeta.setAuthor(name);
                 item.setItemMeta(bookMeta);
-                sender.sendMessage(mm.deserialize("<dark_green>The author of the book has been set to <white>'" + name + "<white>'"));
+                sender.sendMessage(colorize("&2The author of the book has been set to &f'" + name + "&f'"));
                 return true;
             }
             case "head" ->
             {
                 if (!sender.hasPermission("itemizer.head"))
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                    sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                     return true;
                 }
                 if (args.length == 1)
                 {
-                    sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Head Command<white>]<dark_aqua>==============="));
-                    sender.sendMessage(mm.deserialize("<aqua>/itemizer head <<white>name<aqua>> <red>- <gold>Set the player of the head"));
+                    sender.sendMessage(colorize("&3===============&f[&dHead Command&f]&3===============\n"
+                            + "&b/itemizer head <&fname&b> &c- &6Set the player of the head"));
                     return true;
                 }
                 if (item.getType() != Material.PLAYER_HEAD)
                 {
-                    sender.sendMessage(mm.deserialize("<red>You do not have a Skull in your hand."));
+                    sender.sendMessage(colorize("&cYou do not have a Skull in your hand."));
                     return true;
                 }
                 String name = args[1];
@@ -878,26 +890,27 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                 assert skullMeta != null;
                 skullMeta.setOwner(name);
                 item.setItemMeta(skullMeta);
-                sender.sendMessage(mm.deserialize("<dark_green>The player of the head has been set to <white>'" + name + "<white>'"));
+                sender.sendMessage(colorize("&2The player of the head has been set to &f'" + name + "&f'"));
                 return true;
             }
             case "sign" ->
             {
                 if (!sender.hasPermission("itemizer.sign"))
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                    sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                     return true;
                 }
                 if (args.length < 3)
                 {
-                    sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Sign Commands<white>]<dark_aqua>==============="));
-                    sender.sendMessage(mm.deserialize("<aqua>/itemizer sign <<white>line<aqua>> <<white>text<aqua>> <red>- <gold>Change the line on the sign"));
+                    sender.sendMessage(colorize("&3===============&f[&dSign Command&f]&3===============\n"
+                            + "&b/itemizer sign <&fline&b> <&ftext&b> &c- &6Change the line on the sign"));
                     return true;
                 }
                 final Block block = player.getTargetBlockExact(20);
-                if (block == null || block.getType() == Material.AIR || !block.getType().toString().contains("SIGN"))
+                if (block == null || block.getType() == Material.AIR
+                        || !block.getType().toString().contains("SIGN"))
                 {
-                    sender.sendMessage(mm.deserialize("<red>Please look at a sign!"));
+                    sender.sendMessage(colorize("&4Please look at a sign!"));
                     return true;
                 }
                 Integer line = parseInt(sender, args[1]);
@@ -907,46 +920,58 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                 }
                 else if (line > 4)
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>There's a maximum of 4 lines on a sign"));
+                    sender.sendMessage(colorize("&4There's maximum of 4 lines on a sign"));
                     return true;
                 }
-                Component text = mm.deserialize(StringUtils.join(args, " ", 2, args.length));
+                String text = colorize(StringUtils.join(args, " ", 2, args.length));
                 if (cpb.getAPI() != null)
                 {
                     cpb.getAPI().logRemoval(player.getName(), block.getLocation(), block.getType(), block.getBlockData());
                 }
                 Sign sign = (Sign)block.getState();
-                sign.line(line - 1, text);
+                sign.setLine(line - 1, text);
                 sign.update();
                 if (cpb.getAPI() != null)
                 {
                     cpb.getAPI().logPlacement(player.getName(), sign.getLocation(), sign.getType(), sign.getBlockData());
                 }
-                sender.sendMessage(mm.deserialize("<dark_green>Line <white>'" + line + "<white>'<dark_green> has successfully changed to <white>'" + text + "<white>'"));
+                sender.sendMessage(colorize("&2Line &f'" + line + "'&2 has successfully changed to &f'" + text + "&f'"));
                 return true;
             }
             case "clearall" ->
             {
                 if (!sender.hasPermission("itemizer.clearall"))
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                    sender.sendMessage(colorize("&4You don't have permission to use this command!"));
                     return true;
                 }
                 if (!hasItem)
                 {
-                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
+                    sender.sendMessage(colorize("&cYou do not have an item in your hand."));
                     return true;
                 }
                 item.setItemMeta(null);
-                sender.sendMessage(mm.deserialize("<dark_green>All data cleared from your item"));
+                sender.sendMessage(colorize("&2All data cleared from your item"));
                 return true;
             }
             default ->
             {
-                sender.sendMessage(mm.deserialize("<aqua>Unknown sub-command. Type <gold><click:run_command:/itemizer help>/itemizer help</click> <aqua>for help."));
+                sender.sendMessage(colorize("&bUnknown sub-command. Type &6/itemizer help &bfor help."));
                 return true;
             }
         }
+    }
+
+    private String colorize(String string)
+    {
+        Matcher matcher = Pattern.compile("&#[a-fA-F0-9]{6}").matcher(string);
+        while (matcher.find())
+        {
+            String code = matcher.group().replace("&", "");
+            string = string.replace("&" + code, net.md_5.bungee.api.ChatColor.of(code) + "");
+        }
+        string = ChatColor.translateAlternateColorCodes('&', string);
+        return string;
     }
 
     private Integer parseInt(CommandSender sender, String string)
@@ -957,7 +982,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
         }
         catch (NumberFormatException ex)
         {
-            sender.sendMessage(mm.deserialize("<white>\"" + string + "<white>\"<dark_red> is not a valid number!"));
+            sender.sendMessage(colorize("&f\"" + string + "&f\"&4 is not a valid number!"));
         }
         return null;
     }

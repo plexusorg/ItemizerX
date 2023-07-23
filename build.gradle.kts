@@ -56,7 +56,7 @@ bukkit {
     description = "A new way to edit your items"
     authors = listOf("Focusvity", "Telesphoreo")
     main = "dev.plex.itemizerx.ItemizerX"
-    apiVersion = "1.18"
+    apiVersion = "1.17"
     foliaSupported = true
     softDepend = listOf("CoreProtect")
     commands {
@@ -69,7 +69,8 @@ bukkit {
 }
 
 // Adapted from PlotSquared
-val supportedVersions = listOf("1.18.2", "1.19", "1.19.1", "1.19.2", "1.19.3", "1.19.4", "1.20", "1.20.1")
+val supportedVersions =
+    listOf("1.17.1", "1.18.1", "1.18.2", "1.19", "1.19.1", "1.19.2", "1.19.3", "1.19.4", "1.20", "1.20.1")
 tasks {
     supportedVersions.forEach {
         register<RunServer>("runServer-$it") {
@@ -108,4 +109,6 @@ dependencies {
     implementation(project(path = ":v1_19_R2", configuration = "shadow"))
     implementation(project(path = ":v1_19_R1", configuration = "shadow"))
     implementation(project(path = ":v1_18_R2", configuration = "shadow"))
+    implementation(project(path = ":v1_18_R1", configuration = "shadow"))
+    implementation(project(path = ":v1_17_R1", configuration = "shadow"))
 }

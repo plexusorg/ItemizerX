@@ -2,9 +2,6 @@ package dev.plex.itemizerx.v1_18_R1;
 
 import dev.plex.itemizerx.Attributes;
 import dev.plex.itemizerx.IAttributeManager;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -13,6 +10,10 @@ import org.apache.commons.lang.StringUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.craftbukkit.v1_18_R1.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 public class AttributeManager implements IAttributeManager
 {
@@ -62,7 +63,7 @@ public class AttributeManager implements IAttributeManager
         final ListTag attrmod = getAttrList(nms);
         for (Tag nbtBase : attrmod)
         {
-            final CompoundTag c = (CompoundTag)nbtBase;
+            final CompoundTag c = (CompoundTag) nbtBase;
             if (c.getString("Name").equals(args[2]))
             {
                 player.sendMessage(colorize("&4An attribute with the name \"&f" + args[2] + "&4\" already exists!"));
@@ -116,7 +117,7 @@ public class AttributeManager implements IAttributeManager
         boolean r = false;
         for (Tag nbtBase : attrmod)
         {
-            final CompoundTag c = (CompoundTag)nbtBase;
+            final CompoundTag c = (CompoundTag) nbtBase;
             if (!c.getString("Name").equals(string))
             {
                 newList.add(nbtBase);
@@ -150,7 +151,7 @@ public class AttributeManager implements IAttributeManager
         player.sendMessage(colorize("&2Item attributes: "));
         for (Tag nbtBase : attrmod)
         {
-            final CompoundTag c = (CompoundTag)nbtBase;
+            final CompoundTag c = (CompoundTag) nbtBase;
             player.sendMessage(colorize("&e" + Attributes.get(c.getString("AttributeName")).mcName
                     + ", " + c.getDouble("Amount")));
         }

@@ -2,9 +2,6 @@ package dev.plex.itemizerx.v1_20_R1;
 
 import dev.plex.itemizerx.Attributes;
 import dev.plex.itemizerx.IAttributeManager;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -13,6 +10,10 @@ import net.minecraft.world.item.ItemStack;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 public class AttributeManager implements IAttributeManager
 {
@@ -64,7 +65,7 @@ public class AttributeManager implements IAttributeManager
         final ListTag attrmod = getAttrList(nms);
         for (Tag nbtBase : attrmod)
         {
-            final CompoundTag c = (CompoundTag)nbtBase;
+            final CompoundTag c = (CompoundTag) nbtBase;
             if (c.getString("Name").equals(args[2]))
             {
                 player.sendMessage(mm.deserialize("<dark_red>An attribute with the name \"<white>" + args[2] + "<dark_red>\" already exists!"));
@@ -118,7 +119,7 @@ public class AttributeManager implements IAttributeManager
         boolean r = false;
         for (Tag nbtBase : attrmod)
         {
-            final CompoundTag c = (CompoundTag)nbtBase;
+            final CompoundTag c = (CompoundTag) nbtBase;
             if (!c.getString("Name").equals(string))
             {
                 newList.add(nbtBase);
@@ -152,7 +153,7 @@ public class AttributeManager implements IAttributeManager
         player.sendMessage(mm.deserialize("<dark_green>Item attributes: "));
         for (Tag nbtBase : attrmod)
         {
-            final CompoundTag c = (CompoundTag)nbtBase;
+            final CompoundTag c = (CompoundTag) nbtBase;
             player.sendMessage(mm.deserialize("<yellow>" + Attributes.get(c.getString("AttributeName")).mcName
                     + ", " + c.getDouble("Amount")));
         }

@@ -1,11 +1,5 @@
 package dev.plex.itemizerx;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.apache.commons.lang.StringUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
@@ -27,6 +21,13 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ItemizerXCompatCommand implements CommandExecutor, ItemizerXBase
 {
@@ -352,7 +353,7 @@ public class ItemizerXCompatCommand implements CommandExecutor, ItemizerXBase
                                 return true;
                             }
                             final PotionEffect pot = new PotionEffect(potType, tick, level);
-                            final PotionMeta potionMeta = (PotionMeta)meta;
+                            final PotionMeta potionMeta = (PotionMeta) meta;
                             assert potionMeta != null;
                             if (potionMeta.hasCustomEffect(pot.getType()))
                             {
@@ -383,7 +384,7 @@ public class ItemizerXCompatCommand implements CommandExecutor, ItemizerXBase
                                 sender.sendMessage(colorize("&4The potion effect &f\"" + args[2] + "&f\"&4 does not exist!"));
                                 return true;
                             }
-                            final PotionMeta potionMeta = (PotionMeta)meta;
+                            final PotionMeta potionMeta = (PotionMeta) meta;
                             assert potionMeta != null;
                             if (!potionMeta.hasCustomEffect(potType))
                             {
@@ -434,7 +435,7 @@ public class ItemizerXCompatCommand implements CommandExecutor, ItemizerXBase
                                         + "&b/itemizer potion color <&fhexcolor&b> &c- &6Set a potion color"));
                                 return true;
                             }
-                            final PotionMeta potionMeta = (PotionMeta)meta;
+                            final PotionMeta potionMeta = (PotionMeta) meta;
                             assert potionMeta != null;
                             try
                             {
@@ -830,7 +831,7 @@ public class ItemizerXCompatCommand implements CommandExecutor, ItemizerXBase
                     return true;
                 }
                 String name = colorize(StringUtils.join(args, " ", 1, args.length));
-                final BookMeta bookMeta = (BookMeta)meta;
+                final BookMeta bookMeta = (BookMeta) meta;
                 assert bookMeta != null;
                 bookMeta.setTitle(name);
                 item.setItemMeta(bookMeta);
@@ -856,7 +857,7 @@ public class ItemizerXCompatCommand implements CommandExecutor, ItemizerXBase
                     return true;
                 }
                 String name = colorize(args[1]);
-                final BookMeta bookMeta = (BookMeta)meta;
+                final BookMeta bookMeta = (BookMeta) meta;
                 assert bookMeta != null;
                 bookMeta.setAuthor(name);
                 item.setItemMeta(bookMeta);
@@ -886,7 +887,7 @@ public class ItemizerXCompatCommand implements CommandExecutor, ItemizerXBase
                 {
                     name = name.substring(0, 16);
                 }
-                final SkullMeta skullMeta = (SkullMeta)meta;
+                final SkullMeta skullMeta = (SkullMeta) meta;
                 assert skullMeta != null;
                 skullMeta.setOwner(name);
                 item.setItemMeta(skullMeta);
@@ -928,7 +929,7 @@ public class ItemizerXCompatCommand implements CommandExecutor, ItemizerXBase
                 {
                     cpb.getAPI().logRemoval(player.getName(), block.getLocation(), block.getType(), block.getBlockData());
                 }
-                Sign sign = (Sign)block.getState();
+                Sign sign = (Sign) block.getState();
                 sign.setLine(line - 1, text);
                 sign.update();
                 if (cpb.getAPI() != null)

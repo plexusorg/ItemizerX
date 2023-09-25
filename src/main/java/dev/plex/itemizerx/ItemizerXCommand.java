@@ -1,5 +1,9 @@
 package dev.plex.itemizerx;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.apache.commons.lang3.StringUtils;
@@ -31,6 +35,30 @@ import java.util.Objects;
 public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
 {
     final List<Material> POTIONS = Arrays.asList(Material.POTION, Material.LINGERING_POTION, Material.SPLASH_POTION);
+    final Map<String, String> COLOR_TRANSLATION = new HashMap<>(){{
+        put("&a", "<green>");
+        put("&b", "<aqua>");
+        put("&c", "<red>");
+        put("&d", "<light_purple>");
+        put("&e", "<yellow>");
+        put("&f", "<white>");
+        put("&k", "<obfuscated>");
+        put("&l", "<bold>");
+        put("&m", "<strikethrough>");
+        put("&n", "<underlined>");
+        put("&o", "<italic>");
+        put("&r", "<reset>");
+        put("&1", "<dark_blue>");
+        put("&2", "<dark_green>");
+        put("&3", "<dark_aqua>");
+        put("&4", "<dark_red>");
+        put("&5", "<dark_purple>");
+        put("&6", "<gold>");
+        put("&7", "<light_gray>");
+        put("&8", "<dark_gray>");
+        put("&9", "<blue>");
+        put("&0", "<black>");
+    }};
     CoreProtectBridge cpb = new CoreProtectBridge();
     MiniMessage mm = MiniMessage.miniMessage();
 
@@ -101,7 +129,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                         sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
                         return true;
                     }
-                    Component name = mm.deserialize(StringUtils.join(args, " ", 1, args.length));
+                    Component name = colorize(StringUtils.join(args, " ", 1, args.length));
                     assert meta != null;
                     meta.displayName(name);
                     item.setItemMeta(meta);
@@ -176,7 +204,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                                 sender.sendMessage(mm.deserialize("<aqua>/itemizer lore add <<white>text<aqua>> <red>- <gold>Add a line of text to your item's lore"));
                                 return true;
                             }
-                            Component lore = mm.deserialize(StringUtils.join(args, " ", 2, args.length));
+                            Component lore = colorize(StringUtils.join(args, " ", 2, args.length));
                             assert meta != null;
                             List<Component> lores = new ArrayList<>();
                             if (meta.lore() != null)
@@ -247,7 +275,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                             {
                                 return true;
                             }
-                            Component lore = mm.deserialize(StringUtils.join(args, " ", 3, args.length));
+                            Component lore = colorize(StringUtils.join(args, " ", 3, args.length));
                             assert meta != null;
                             List<Component> lores;
                             if (meta.lore() != null)
@@ -267,7 +295,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                             lores.set(index - 1, lore);
                             meta.lore(lores);
                             item.setItemMeta(meta);
-                            sender.sendMessage(mm.deserialize("<dark_gree>Line <white>'" + index + "' <dark_green>has been changed to <white>'" + lore + "<white>'"));
+                            sender.sendMessage(mm.deserialize("<dark_gree>Line <white>'" + index + "' <dark_green>has been changed to <white>'" + mm.serialize(lore) + "<white>'"));
                             return true;
                         }
                         case "clear" ->
@@ -818,12 +846,12 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                     sender.sendMessage(mm.deserialize("<red>You do not have a Written Book in your hand."));
                     return true;
                 }
-                Component name = mm.deserialize(StringUtils.join(args, " ", 1, args.length));
+                Component name = colorize(StringUtils.join(args, " ", 1, args.length));
                 final BookMeta bookMeta = (BookMeta) meta;
                 assert bookMeta != null;
                 bookMeta.title(name);
                 item.setItemMeta(bookMeta);
-                sender.sendMessage(mm.deserialize("<dark_green>The title of the book has been set to <white'" + name + "<white>'"));
+                sender.sendMessage(mm.deserialize("<dark_green>The title of the book has been set to <white>'" + mm.serialize(name) + "<white>'"));
                 return true;
             }
             case "author" ->
@@ -844,12 +872,12 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                     sender.sendMessage(mm.deserialize("<red>You do not have a Written Book in your hand."));
                     return true;
                 }
-                Component name = mm.deserialize(args[1]);
+                Component name = colorize(args[1]);
                 final BookMeta bookMeta = (BookMeta) meta;
                 assert bookMeta != null;
                 bookMeta.author(name);
                 item.setItemMeta(bookMeta);
-                sender.sendMessage(mm.deserialize("<dark_green>The author of the book has been set to <white>'" + name + "<white>'"));
+                sender.sendMessage(mm.deserialize("<dark_green>The author of the book has been set to <white>'" + mm.serialize(name) + "<white>'"));
                 return true;
             }
             case "head" ->
@@ -911,7 +939,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                     sender.sendMessage(mm.deserialize("<dark_red>There's a maximum of 4 lines on a sign"));
                     return true;
                 }
-                Component text = mm.deserialize(StringUtils.join(args, " ", 2, args.length));
+                Component text = colorize(StringUtils.join(args, " ", 2, args.length));
                 if (cpb.getAPI() != null)
                 {
                     cpb.getAPI().logRemoval(player.getName(), block.getLocation(), block.getType(), block.getBlockData());
@@ -923,7 +951,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                 {
                     cpb.getAPI().logPlacement(player.getName(), sign.getLocation(), sign.getType(), sign.getBlockData());
                 }
-                sender.sendMessage(mm.deserialize("<dark_green>Line <white>'" + line + "<white>'<dark_green> has successfully changed to <white>'" + text + "<white>'"));
+                sender.sendMessage(mm.deserialize("<dark_green>Line <white>'" + line + "<white>'<dark_green> has successfully changed to <white>'" + mm.serialize(text) + "<white>'"));
                 return true;
             }
             case "clearall" ->
@@ -948,6 +976,17 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                 return true;
             }
         }
+    }
+
+    private Component colorize(String string)
+    {
+        Matcher matcher = Pattern.compile("&[a-fk-or0-9]").matcher(string);
+        while (matcher.find())
+        {
+            String color = matcher.group();
+            string = string.replace(color, COLOR_TRANSLATION.getOrDefault(color, color));
+        }
+        return mm.deserialize(string);
     }
 
     private Integer parseInt(CommandSender sender, String string)

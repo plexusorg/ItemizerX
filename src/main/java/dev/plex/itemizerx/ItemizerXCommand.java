@@ -980,11 +980,11 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
 
     private Component colorize(String string)
     {
-        Matcher matcher = Pattern.compile("&[a-fk-or0-9]").matcher(string);
+        Matcher matcher = Pattern.compile("&[a-fk-or0-9]", Pattern.CASE_INSENSITIVE).matcher(string);
         while (matcher.find())
         {
             String color = matcher.group();
-            string = string.replace(color, COLOR_TRANSLATION.getOrDefault(color, color));
+            string = string.replace(color, COLOR_TRANSLATION.getOrDefault(color.toLowerCase(), color));
         }
         return mm.deserialize(string);
     }

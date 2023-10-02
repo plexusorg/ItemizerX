@@ -295,7 +295,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                             lores.set(index - 1, lore);
                             meta.lore(lores);
                             item.setItemMeta(meta);
-                            sender.sendMessage(mm.deserialize("<dark_gree>Line <white>'" + index + "' <dark_green>has been changed to <white>'" + mm.serialize(lore) + "<white>'"));
+                            sender.sendMessage(mm.deserialize("<dark_green>Line <white>'" + index + "' <dark_green>has been changed to <white>'" + mm.serialize(lore) + "<white>'"));
                             return true;
                         }
                         case "clear" ->

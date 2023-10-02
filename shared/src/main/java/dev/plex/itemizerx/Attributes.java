@@ -34,7 +34,7 @@ public enum Attributes
     {
         for (Attributes attr : values())
         {
-            if (attr.name().equalsIgnoreCase(name) || attr.mcName.equalsIgnoreCase(name))
+            if (attr.name().equalsIgnoreCase(name) || attr.mcName.equalsIgnoreCase(name.replace("minecraft:", "")))
             {
                 return attr;
             }

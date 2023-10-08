@@ -3,8 +3,8 @@ import xyz.jpenilla.runpaper.task.RunServer
 plugins {
     id("java")
     id("com.github.johnrengelman.shadow") version "8.1.1"
-    id("io.papermc.paperweight.userdev") version "1.5.5"
-    id("xyz.jpenilla.run-paper") version "2.1.0"
+    id("io.papermc.paperweight.userdev") version "1.5.7"
+    id("xyz.jpenilla.run-paper") version "2.2.0"
     id("net.minecrell.plugin-yml.bukkit") version "0.6.0"
 }
 
@@ -70,7 +70,7 @@ bukkit {
 
 // Adapted from PlotSquared
 val supportedVersions =
-        listOf("1.17.1", "1.18.1", "1.18.2", "1.19", "1.19.1", "1.19.2", "1.19.3", "1.19.4", "1.20", "1.20.1")
+        listOf("1.17.1", "1.18.1", "1.18.2", "1.19", "1.19.1", "1.19.2", "1.19.3", "1.19.4", "1.20", "1.20.1", "1.20.2")
 tasks {
     supportedVersions.forEach {
         register<RunServer>("runServer-$it") {
@@ -99,11 +99,12 @@ tasks {
 
 dependencies {
     paperDevBundle("1.20.1-R0.1-SNAPSHOT")
-    compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
-    compileOnly("net.coreprotect:coreprotect:21.3")
+    compileOnly("io.papermc.paper:paper-api:1.20.2-R0.1-SNAPSHOT")
+    compileOnly("net.coreprotect:coreprotect:22.2")
     implementation("org.bstats:bstats-base:3.0.2")
     implementation("org.bstats:bstats-bukkit:3.0.2")
     implementation(project(path = ":shared", configuration = "shadow"))
+    implementation(project(path = ":v1_20_R2", configuration = "shadow"))
     implementation(project(path = ":v1_20_R1", configuration = "shadow"))
     implementation(project(path = ":v1_19_R3", configuration = "shadow"))
     implementation(project(path = ":v1_19_R2", configuration = "shadow"))

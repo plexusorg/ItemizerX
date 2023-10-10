@@ -3,7 +3,7 @@ import xyz.jpenilla.runpaper.task.RunServer
 plugins {
     id("java")
     id("com.github.johnrengelman.shadow") version "8.1.1"
-    id("io.papermc.paperweight.userdev") version "1.5.7"
+    id("io.papermc.paperweight.userdev") version "1.5.8"
     id("xyz.jpenilla.run-paper") version "2.2.0"
     id("net.minecrell.plugin-yml.bukkit") version "0.6.0"
 }
@@ -98,7 +98,7 @@ tasks {
 }
 
 dependencies {
-    paperDevBundle("1.20.1-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("1.20.2-R0.1-SNAPSHOT")
     compileOnly("io.papermc.paper:paper-api:1.20.2-R0.1-SNAPSHOT")
     compileOnly("net.coreprotect:coreprotect:22.2")
     implementation("org.bstats:bstats-base:3.0.2")

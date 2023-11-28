@@ -54,7 +54,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
         put("&4", "<dark_red>");
         put("&5", "<dark_purple>");
         put("&6", "<gold>");
-        put("&7", "<light_gray>");
+        put("&7", "<gray>");
         put("&8", "<dark_gray>");
         put("&9", "<blue>");
         put("&0", "<black>");

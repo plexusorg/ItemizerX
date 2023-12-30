@@ -25,6 +25,11 @@ public class ItemizerX extends JavaPlugin
         getCommand("itemizer").setTabCompleter(new ItemizerXTab());
         switch (getNMSVersion())
         {
+            case "v1_20_R3" ->
+            {
+                getCommand("itemizer").setExecutor(new ItemizerXCommand());
+                attr = new dev.plex.itemizerx.v1_20_R3.AttributeManager();
+            }
             case "v1_20_R2" ->
             {
                 getCommand("itemizer").setExecutor(new ItemizerXCommand());

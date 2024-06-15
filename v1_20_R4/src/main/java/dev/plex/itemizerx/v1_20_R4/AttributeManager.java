@@ -1,14 +1,14 @@
-package dev.plex.itemizerx.v1_17_R1;
+/*package dev.plex.itemizerx.v1_20_R4;
 
 import dev.plex.itemizerx.Attributes;
 import dev.plex.itemizerx.IAttributeManager;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
-import org.apache.commons.lang.StringUtils;
-import org.bukkit.ChatColor;
-import org.bukkit.craftbukkit.v1_17_R1.inventory.CraftItemStack;
+import org.apache.commons.lang3.StringUtils;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -17,13 +17,15 @@ import java.util.Random;
 
 public class AttributeManager implements IAttributeManager
 {
+    private final MiniMessage mm = MiniMessage.miniMessage();
+
     @Override
     public ListTag getAttrList(final ItemStack item)
     {
         ListTag attrmod = item.getOrCreateTag().getList("AttributeModifiers", 10);
         if (attrmod == null)
         {
-            item.getTag().put("AttributeModifiers", new CompoundTag());
+            item.put("AttributeModifiers", new CompoundTag());
         }
         return item.getTag().getList("AttributeModifiers", 10);
     }
@@ -34,14 +36,14 @@ public class AttributeManager implements IAttributeManager
         int op;
         if (args.length < 4)
         {
-            player.sendMessage(colorize("&b/itemizer attr add <&fname&b> <&fstrength&b> [&fslot&b] &c- "
-                    + "&6Add an attribute"));
+            player.sendMessage(mm.deserialize("<aqua>/itemizer attr add <<white>name<aqua>> <<white>strength<aqua>>" +
+                    "[<white>slot<aqua>] <red>- <gold>Add an attribute"));
             return;
         }
         final Attributes a = Attributes.get(args[2]);
         if (a == null)
         {
-            player.sendMessage(colorize("&4\"" + args[2] + "\" is not a valid attribute type."));
+            player.sendMessage(mm.deserialize("<dark_red>\"" + args[2] + "\" is not a valid attribute type."));
             return;
         }
         double amount;
@@ -51,12 +53,12 @@ public class AttributeManager implements IAttributeManager
         }
         catch (NumberFormatException ex)
         {
-            player.sendMessage(colorize("&4\"" + args[3] + "\" is not a valid number."));
+            player.sendMessage(mm.deserialize("<dark_red>\"" + args[3] + "\" is not a valid number."));
             return;
         }
         if (Double.isNaN(amount))
         {
-            player.sendMessage(colorize("&4Please do not use &f'NaN (Not a Number)'"));
+            player.sendMessage(mm.deserialize("<dark_red>Please do not use <white>'NaN (Not a Number)'"));
             return;
         }
         final ItemStack nms = CraftItemStack.asNMSCopy(player.getInventory().getItemInMainHand());
@@ -66,7 +68,7 @@ public class AttributeManager implements IAttributeManager
             final CompoundTag c = (CompoundTag) nbtBase;
             if (c.getString("Name").equals(args[2]))
             {
-                player.sendMessage(colorize("&4An attribute with the name \"&f" + args[2] + "&4\" already exists!"));
+                player.sendMessage(mm.deserialize("<dark_red>An attribute with the name \"<white>" + args[2] + "<dark_red>\" already exists!"));
                 return;
             }
         }
@@ -95,8 +97,8 @@ public class AttributeManager implements IAttributeManager
             options.add("feet");
             if (!options.contains(args[4].toLowerCase()))
             {
-                player.sendMessage(colorize("&2Supported options:\n"
-                        + "&e" + StringUtils.join(options, ", ")));
+                player.sendMessage(mm.deserialize("<dark_green>Supported options:"));
+                player.sendMessage(mm.deserialize("<yellow>" + StringUtils.join(options, ", ")));
                 return;
             }
             c.putString("Slot", args[4].toLowerCase());
@@ -105,7 +107,7 @@ public class AttributeManager implements IAttributeManager
         nms.getTag().put("AttributeModifiers", attrmod);
         final org.bukkit.inventory.ItemStack is = CraftItemStack.asCraftMirror(nms);
         player.getInventory().setItemInMainHand(is);
-        player.sendMessage(colorize("&2Attribute added!"));
+        player.sendMessage(mm.deserialize("<dark_aqua>Attribute added!"));
     }
 
     @Override
@@ -129,13 +131,13 @@ public class AttributeManager implements IAttributeManager
         }
         if (!r)
         {
-            player.sendMessage(colorize("&4The attribute \"" + string + "\" doesn't exist!"));
+            player.sendMessage(mm.deserialize("<dark_red>The attribute \"" + string + "\" doesn't exist!"));
             return;
         }
         nms.getTag().put("AttributeModifiers", newList);
         final org.bukkit.inventory.ItemStack is = CraftItemStack.asCraftMirror(nms);
         player.getInventory().setItemInMainHand(is);
-        player.sendMessage(colorize("&2Attribute removed!"));
+        player.sendMessage(mm.deserialize("<dark_green>Attribute removed!"));
     }
 
     @Override
@@ -145,20 +147,16 @@ public class AttributeManager implements IAttributeManager
         final ListTag attrmod = getAttrList(nms);
         if (attrmod.size() == 0)
         {
-            player.sendMessage(colorize("&eThis item has no attributes."));
+            player.sendMessage(mm.deserialize("<yellow>This item has no attributes."));
             return;
         }
-        player.sendMessage(colorize("&2Item attributes: "));
+        player.sendMessage(mm.deserialize("<dark_green>Item attributes: "));
         for (Tag nbtBase : attrmod)
         {
             final CompoundTag c = (CompoundTag) nbtBase;
-            player.sendMessage(colorize("&e" + Attributes.get(c.getString("AttributeName")).mcName
+            player.sendMessage(mm.deserialize("<yellow>" + Attributes.get(c.getString("AttributeName")).mcName
                     + ", " + c.getDouble("Amount")));
         }
     }
-
-    public String colorize(String string)
-    {
-        return ChatColor.translateAlternateColorCodes('&', string);
-    }
 }
+*/

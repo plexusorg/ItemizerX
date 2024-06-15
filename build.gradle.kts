@@ -2,14 +2,14 @@ import xyz.jpenilla.runpaper.task.RunServer
 
 plugins {
     id("java")
-    id("com.github.johnrengelman.shadow") version "8.1.1"
-    id("io.papermc.paperweight.userdev") version "1.5.11"
-    id("xyz.jpenilla.run-paper") version "2.2.2"
+    id("io.github.goooler.shadow") version "8.1.7"
+    id("io.papermc.paperweight.userdev") version "1.7.1"
+    id("xyz.jpenilla.run-paper") version "2.3.0"
     id("net.minecrell.plugin-yml.bukkit") version "0.6.0"
 }
 
 group = "dev.plex"
-version = "2.2.1"
+version = "2.3"
 
 allprojects {
     repositories {
@@ -30,7 +30,7 @@ allprojects {
 
 subprojects {
     apply(plugin = "java")
-    apply(plugin = "com.github.johnrengelman.shadow")
+    apply(plugin = "io.github.goooler.shadow")
     apply(plugin = "io.papermc.paperweight.userdev")
 
     dependencies {
@@ -47,7 +47,7 @@ subprojects {
 }
 
 java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(17))
+    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
 }
 
 bukkit {
@@ -56,7 +56,7 @@ bukkit {
     description = "A new way to edit your items"
     authors = listOf("Focusvity", "Telesphoreo")
     main = "dev.plex.itemizerx.ItemizerX"
-    apiVersion = "1.17"
+    apiVersion = "1.19"
     foliaSupported = true
     softDepend = listOf("CoreProtect")
     commands {
@@ -70,7 +70,7 @@ bukkit {
 
 // Adapted from PlotSquared
 val supportedVersions =
-        listOf("1.17.1", "1.18.1", "1.18.2", "1.19", "1.19.1", "1.19.2", "1.19.3", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.4")
+        listOf("1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.4", "1.20.6")
 tasks {
     supportedVersions.forEach {
         register<RunServer>("runServer-$it") {
@@ -89,7 +89,7 @@ tasks {
 
     compileJava {
         options.encoding = Charsets.UTF_8.name()
-        options.release.set(17)
+        options.release.set(21)
     }
 
     shadowJar {
@@ -98,19 +98,13 @@ tasks {
 }
 
 dependencies {
-    paperweight.paperDevBundle("1.20.2-R0.1-SNAPSHOT")
-    compileOnly("io.papermc.paper:paper-api:1.20.2-R0.1-SNAPSHOT")
-    compileOnly("net.coreprotect:coreprotect:22.2")
+    paperweight.paperDevBundle("1.20.6-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.20.6-R0.1-SNAPSHOT")
+    compileOnly("net.coreprotect:coreprotect:22.4")
     implementation("org.bstats:bstats-base:3.0.2")
     implementation("org.bstats:bstats-bukkit:3.0.2")
     implementation(project(path = ":shared", configuration = "shadow"))
+    implementation(project(path = ":v1_20_R4", configuration = "shadow"))
     implementation(project(path = ":v1_20_R3", configuration = "shadow"))
     implementation(project(path = ":v1_20_R2", configuration = "shadow"))
-    implementation(project(path = ":v1_20_R1", configuration = "shadow"))
-    implementation(project(path = ":v1_19_R3", configuration = "shadow"))
-    implementation(project(path = ":v1_19_R2", configuration = "shadow"))
-    implementation(project(path = ":v1_19_R1", configuration = "shadow"))
-    implementation(project(path = ":v1_18_R2", configuration = "shadow"))
-    implementation(project(path = ":v1_18_R1", configuration = "shadow"))
-    implementation(project(path = ":v1_17_R1", configuration = "shadow"))
 }

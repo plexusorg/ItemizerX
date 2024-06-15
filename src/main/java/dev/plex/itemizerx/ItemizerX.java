@@ -1,6 +1,7 @@
 package dev.plex.itemizerx;
 
 import org.bstats.bukkit.Metrics;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class ItemizerX extends JavaPlugin
@@ -23,67 +24,35 @@ public class ItemizerX extends JavaPlugin
         new Metrics(this, 19104);
         cpb.getCoreProtect();
         getCommand("itemizer").setTabCompleter(new ItemizerXTab());
-        switch (getNMSVersion())
+        switch (getServerVersion())
         {
-            case "v1_20_R3" ->
+            case "1.20.5", "1.20.6" ->
+            {
+                getCommand("itemizer").setExecutor(new ItemizerXCommand());
+                attr = new dev.plex.itemizerx.v1_20_R4.AttributeManager();
+            }
+            case "1.20.4" ->
             {
                 getCommand("itemizer").setExecutor(new ItemizerXCommand());
                 attr = new dev.plex.itemizerx.v1_20_R3.AttributeManager();
             }
-            case "v1_20_R2" ->
+            case "1.20.3", "1.20.2" ->
             {
                 getCommand("itemizer").setExecutor(new ItemizerXCommand());
                 attr = new dev.plex.itemizerx.v1_20_R2.AttributeManager();
             }
-            case "v1_20_R1" ->
-            {
-                getCommand("itemizer").setExecutor(new ItemizerXCommand());
-                attr = new dev.plex.itemizerx.v1_20_R1.AttributeManager();
-            }
-            case "v1_19_R3" ->
-            {
-                getCommand("itemizer").setExecutor(new ItemizerXCommand());
-                attr = new dev.plex.itemizerx.v1_19_R3.AttributeManager();
-            }
-            case "v1_19_R2" ->
-            {
-                getCommand("itemizer").setExecutor(new ItemizerXCommand());
-                attr = new dev.plex.itemizerx.v1_19_R2.AttributeManager();
-            }
-            case "v1_19_R1" ->
-            {
-                getCommand("itemizer").setExecutor(new ItemizerXCommand());
-                attr = new dev.plex.itemizerx.v1_19_R1.AttributeManager();
-            }
-            case "v1_18_R2" ->
-            {
-                getCommand("itemizer").setExecutor(new ItemizerXCommand());
-                attr = new dev.plex.itemizerx.v1_18_R2.AttributeManager();
-            }
-            case "v1_18_R1" ->
-            {
-                getCommand("itemizer").setExecutor(new ItemizerXCompatCommand());
-                attr = new dev.plex.itemizerx.v1_18_R1.AttributeManager();
-
-            }
-            case "v1_17_R1" ->
-            {
-                getCommand("itemizer").setExecutor(new ItemizerXCompatCommand());
-                attr = new dev.plex.itemizerx.v1_17_R1.AttributeManager();
-            }
             default ->
             {
                 getLogger().severe("You are trying to run ItemizerX on an incompatible server version.");
-                getLogger().severe("ItemizerX only supports versions 1.17.1 to 1.20.1, disabling plugin.");
+                getLogger().severe("ItemizerX only supports versions 1.20.2 to 1.20.6, disabling plugin.");
                 getServer().getPluginManager().disablePlugin(this);
             }
         }
     }
 
-    public String getNMSVersion()
+    public String getServerVersion()
     {
-        String v = getServer().getClass().getPackage().getName();
-        return v.substring(v.lastIndexOf('.') + 1);
+        return Bukkit.getServer().getMinecraftVersion();
     }
 
     @Override

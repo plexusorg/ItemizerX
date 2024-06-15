@@ -70,7 +70,7 @@ bukkit {
 
 // Adapted from PlotSquared
 val supportedVersions =
-        listOf("1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.4", "1.20.6")
+        listOf("1.20.2", "1.20.4", "1.20.6", "1.21")
 tasks {
     supportedVersions.forEach {
         register<RunServer>("runServer-$it") {
@@ -104,6 +104,7 @@ dependencies {
     implementation("org.bstats:bstats-base:3.0.2")
     implementation("org.bstats:bstats-bukkit:3.0.2")
     implementation(project(path = ":shared", configuration = "shadow"))
+    implementation(project(path = ":v1_21_R1", configuration = "shadow"))
     implementation(project(path = ":v1_20_R4", configuration = "shadow"))
     implementation(project(path = ":v1_20_R3", configuration = "shadow"))
     implementation(project(path = ":v1_20_R2", configuration = "shadow"))

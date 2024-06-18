@@ -104,7 +104,7 @@ dependencies {
     implementation("org.bstats:bstats-base:3.0.2")
     implementation("org.bstats:bstats-bukkit:3.0.2")
     implementation(project(path = ":shared", configuration = "shadow"))
-    implementation(project(path = ":v1_21_R1", configuration = "shadow"))
+    //implementation(project(path = ":v1_21_R1", configuration = "shadow"))
     implementation(project(path = ":v1_20_R4", configuration = "shadow"))
     implementation(project(path = ":v1_20_R3", configuration = "shadow"))
     implementation(project(path = ":v1_20_R2", configuration = "shadow"))

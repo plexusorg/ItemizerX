@@ -30,12 +30,12 @@ public class ItemizerX extends JavaPlugin
             {
                 getCommand("itemizer").setExecutor(new ItemizerXCommand());
                 attr = new dev.plex.itemizerx.v1_21_R1.AttributeManager();
-            }
+            }*/
             case "1.20.5", "1.20.6" ->
             {
                 getCommand("itemizer").setExecutor(new ItemizerXCommand());
                 attr = new dev.plex.itemizerx.v1_20_R4.AttributeManager();
-            }*/
+            }
             case "1.20.4" ->
             {
                 getCommand("itemizer").setExecutor(new ItemizerXCommand());

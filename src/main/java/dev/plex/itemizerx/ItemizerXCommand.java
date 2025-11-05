@@ -1,5 +1,7 @@
 package dev.plex.itemizerx;
 
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -9,14 +11,11 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Color;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.enchantments.Enchantment;
-import org.bukkit.enchantments.EnchantmentWrapper;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -59,6 +58,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
         put("&9", "<blue>");
         put("&0", "<black>");
     }};
+
     CoreProtectBridge cpb = new CoreProtectBridge();
     MiniMessage mm = MiniMessage.miniMessage();
 
@@ -161,7 +161,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                     sender.sendMessage(mm.deserialize("<dark_red>The material <white>\"" + args[1] + "<white>\" <dark_red>does not exist!"));
                     return true;
                 }
-                item.setType(material);
+                player.getInventory().setItemInMainHand(item.withType(material));
                 sender.sendMessage(mm.deserialize("<dark_green>The material of the item has changed to <reset>'" + material.name() + "'"));
                 return true;
             }
@@ -439,7 +439,8 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                                 sender.sendMessage(mm.deserialize(material != null ? "<white>'" + material.name() + "' <dark_red>is not a potion type!" : "<dark_red>That material doesn't exist!"));
                                 return true;
                             }
-                            item.setType(material);
+
+                            player.getInventory().setItemInMainHand(item.withType(material));
                             sender.sendMessage(mm.deserialize("<dark_green>The potion in hand has changed to <white>'" + material.name() + "'"));
                             return true;
                         }
@@ -481,11 +482,9 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                                 return true;
                             }
                             StringBuilder sb = new StringBuilder();
-                            PotionEffectType[] effects;
-                            for (int i = 0; i < (effects = PotionEffectType.values()).length; i++)
-                            {
-                                sb.append(", ").append(effects[i].getName());
-                            }
+                            RegistryAccess.registryAccess().getRegistry(RegistryKey.MOB_EFFECT).iterator().forEachRemaining(effect -> {
+                                sb.append(", ").append(effect.getKey().getKey());
+                            });
                             sender.sendMessage(mm.deserialize("<dark_green>Available potion effects: <yellow>" + sb.toString().replaceFirst(", ", "")));
                             return true;
                         }
@@ -540,6 +539,11 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                                 sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
                                 return true;
                             }
+
+                            if (args.length != 3) {
+                                return true;
+                            }
+
                             // NPE to fix here
                             plugin.attr.removeAttr(player, args[2]);
                             return true;
@@ -734,25 +738,8 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                             sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
                             return true;
                         }
-                        if (args.length < 4)
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Enchant Commands<white>]<dark_aqua>==============="));
-                            sender.sendMessage(mm.deserialize("<aqua>/itemizer enchant add <<white>name<aqua>> <<white>level<aqua>> <red>- <gold>Add an enchant"));
-                            return true;
-                        }
-                        final Enchantment ench = EnchantmentWrapper.getByKey(NamespacedKey.minecraft(args[2].toLowerCase()));
-                        if (ench == null)
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_red>The enchantment <white>'" + args[2] + "<white>' <dark_red>does not exist!"));
-                            return true;
-                        }
-                        Integer level = parseInt(sender, args[3]);
-                        if (level == null)
-                        {
-                            return true;
-                        }
-                        item.addUnsafeEnchantment(ench, level);
-                        sender.sendMessage(mm.deserialize("<dark_green>The enchant <white>'" + ench.getKey().getKey() + "' <dark_green>has been added to your item"));
+
+                        plugin.ench.addEnchantment(player, item, args);
                         return true;
                     }
                     case "remove" ->
@@ -762,31 +749,8 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                             sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
                             return true;
                         }
-                        if (args.length == 2)
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Enchant Commands<white>]<dark_aqua>==============="));
-                            sender.sendMessage(mm.deserialize("<aqua>/itemizer enchant remove <<white>name<aqua>> <red>- <gold>Remove an enchant"));
-                            return true;
-                        }
-                        final Enchantment ench = EnchantmentWrapper.getByKey(NamespacedKey.minecraft(args[2].toLowerCase()));
-                        if (ench == null)
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_red>The enchantment <white>'" + args[2] + "<white>' <dark_red>does not exist!"));
-                            return true;
-                        }
-                        assert meta != null;
-                        if (Objects.requireNonNull(meta.getEnchants()).isEmpty())
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_red>This item doesn't hold any enchants"));
-                            return true;
-                        }
-                        if (!meta.getEnchants().containsKey(ench))
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_red>This item doesn't have <white<'" + ench.getKey().getKey() + "' <dark_red>enchant!"));
-                            return true;
-                        }
-                        item.removeEnchantment(ench);
-                        sender.sendMessage(mm.deserialize("<dark_green>The enchant <white>'" + ench.getKey().getKey() + "' <dark_green>has been removed from your item"));
+
+                        plugin.ench.removeEnchantment(player, item, args);
                         return true;
                     }
                     case "list" ->
@@ -813,12 +777,10 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                             return true;
                         }
                         StringBuilder sb = new StringBuilder();
-                        Enchantment[] enchantments;
-                        for (int i = 0; i < (enchantments = Enchantment.values()).length; i++)
-                        {
-                            sb.append(", ").append(enchantments[i].getKey().getKey());
-                        }
-                        sender.sendMessage(mm.deserialize("<dark_green>Available item enchants: <yellow>" + sb.toString().replaceFirst(", ", "")));
+                        RegistryAccess.registryAccess().getRegistry(RegistryKey.ENCHANTMENT).iterator().forEachRemaining(enchantment -> {
+                            sb.append(", ").append(enchantment.getKey().getKey());
+                        });
+                        sender.sendMessage(mm.deserialize("<dark_green>Available item enchantments: <yellow>" + sb.toString().replaceFirst(", ", "")));
                         return true;
                     }
                     default ->
@@ -945,7 +907,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                     cpb.getAPI().logRemoval(player.getName(), block.getLocation(), block.getType(), block.getBlockData());
                 }
                 Sign sign = (Sign) block.getState();
-                sign.line(line - 1, text);
+                sign.getTargetSide(player).line(line - 1, text);
                 sign.update();
                 if (cpb.getAPI() != null)
                 {

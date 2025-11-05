@@ -1,12 +1,12 @@
 package dev.plex.itemizerx;
 
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
-import org.bukkit.potion.PotionEffectType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -70,10 +70,9 @@ public class ItemizerXTab implements TabCompleter
                         case "remove":
                         {
                             List<String> potions = new ArrayList<>();
-                            for (PotionEffectType effect : PotionEffectType.values())
-                            {
-                                potions.add(effect.getName());
-                            }
+                            RegistryAccess.registryAccess().getRegistry(RegistryKey.MOB_EFFECT).iterator().forEachRemaining(effect -> {
+                                potions.add(effect.getKey().getKey());
+                            });
                             return potions;
                         }
                     }
@@ -113,10 +112,9 @@ public class ItemizerXTab implements TabCompleter
                         case "remove":
                         {
                             List<String> enchantments = new ArrayList<>();
-                            for (Enchantment enchantment : Enchantment.values())
-                            {
+                            RegistryAccess.registryAccess().getRegistry(RegistryKey.ENCHANTMENT).iterator().forEachRemaining(enchantment -> {
                                 enchantments.add(enchantment.getKey().getKey());
-                            }
+                            });
                             return enchantments;
                         }
                     }

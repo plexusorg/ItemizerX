@@ -1,16 +1,18 @@
-package dev.plex.itemizerx.v1_20_R4;
+package dev.plex.itemizerx.v1_21_R1;
 
+import dev.plex.itemizerx.Attributes;
 import dev.plex.itemizerx.IAttributeManager;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.EquipmentSlotGroup;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.item.component.ItemAttributeModifiers.Entry;
@@ -18,36 +20,20 @@ import org.apache.commons.lang3.StringUtils;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
-import java.util.List;
+public class AttributeManager implements IAttributeManager {
 
-public class AttributeManager implements IAttributeManager
-{
     private final MiniMessage mm = MiniMessage.miniMessage();
 
     @Override
-    public List<AttributeModifier> getAttrList(final Item item)
-    {
-        ItemAttributeModifiers attrmod = item.components().getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY);
-        List<AttributeModifier> modifiers = new ArrayList<>();
-        for (Entry modifier : attrmod.modifiers())
-        {
-            modifiers.add(modifier.modifier());
-        }
-        return modifiers;
-    }
-
-    @Override
-    public void addAttr(final Player player, final String[] args)
-    {
+    public void addAttr(Player player, String[] args) {
         if (args.length < 4)
         {
             player.sendMessage(mm.deserialize("<aqua>/itemizer attr add <<white>name<aqua>> <<white>strength<aqua>>" +
-                    "[<white>slot<aqua>] <red>- <gold>Add an attribute"));
+                "[<white>slot<aqua>] <red>- <gold>Add an attribute"));
             return;
         }
 
-        final Attributes_v1_20_R4 a = Attributes_v1_20_R4.get(args[2]);
+        Attributes a = Attributes.get(args[2]);
         if (a == null)
         {
             player.sendMessage(mm.deserialize("<dark_red>\"" + args[2] + "\" is not a valid attribute type."));
@@ -72,10 +58,10 @@ public class AttributeManager implements IAttributeManager
         }
 
         ItemStack nms = CraftItemStack.asNMSCopy(player.getInventory().getItemInMainHand());
-        final List<AttributeModifier> attrmod = getAttrList(nms.getItem());
-        for (AttributeModifier modifier : attrmod)
+        final List<Entry> entries = nms.getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY).modifiers();
+        for (Entry entry : entries)
         {
-            if (modifier.name().equalsIgnoreCase(args[2]))
+            if (entry.attribute().getRegisteredName().equalsIgnoreCase(args[2]))
             {
                 player.sendMessage(mm.deserialize("<dark_red>An attribute with the name \"<white>" + args[2] + "<dark_red>\" already exists!"));
                 return;
@@ -93,66 +79,69 @@ public class AttributeManager implements IAttributeManager
             catch (IllegalArgumentException ignored)
             {
                 player.sendMessage(mm.deserialize("<dark_green>Supported options:"));
-                player.sendMessage(mm.deserialize("<yellow>" + StringUtils.join(Arrays.stream(EquipmentSlot.values()).map(s -> s.getName().toLowerCase()).toArray(), ", ")));
+                player.sendMessage(mm.deserialize("<yellow>" + StringUtils.join(
+                    Arrays.stream(EquipmentSlot.values()).map(s -> s.getName().toLowerCase()).toArray(), ", ")));
                 return;
             }
 
             group.set(EquipmentSlotGroup.bySlot(slot));
         }
 
-        final AttributeModifier modifier = new AttributeModifier(a.mcName, amount, Operation.BY_ID.apply(a.op));
+        final ResourceLocation locationID = ResourceLocation.fromNamespaceAndPath("itemizerx", String.format("modifier_%s", a.mcName));
+        final AttributeModifier modifier = new AttributeModifier(locationID, amount, Operation.BY_ID.apply(a.op));
         nms.update(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY, x ->
-            x.withModifierAdded(a.attributeHolder, modifier, group.get()).withTooltip(true));
+            x.withModifierAdded(a.attributeHolder, modifier, group.get()));
         final org.bukkit.inventory.ItemStack is = CraftItemStack.asCraftMirror(nms);
         player.getInventory().setItemInMainHand(is);
         player.sendMessage(mm.deserialize("<dark_aqua>Attribute added!"));
     }
 
     @Override
-    public void removeAttr(final Player player, final String string)
-    {
-        /*final ItemStack nms = CraftItemStack.asNMSCopy(player.getInventory().getItemInMainHand());
-        final ListTag attrmod = getAttrList(nms);
-        final ListTag newList = new ListTag();
-        boolean r = false;
-        for (Tag nbtBase : attrmod)
+    public void removeAttr(Player player, String string) {
+        Attributes a = Attributes.get(string);
+        if (a == null)
         {
-            final CompoundTag c = (CompoundTag) nbtBase;
-            if (!c.getString("Name").equals(string))
-            {
-                newList.add(nbtBase);
-            }
-            else
-            {
-                r = true;
-            }
-        }
-        if (!r)
-        {
-            player.sendMessage(mm.deserialize("<dark_red>The attribute \"" + string + "\" doesn't exist!"));
+            player.sendMessage(mm.deserialize("<dark_red>\"" + string + "\" is not a valid attribute type."));
             return;
         }
-        //nms.getTag().put("AttributeModifiers", newList);
-        final org.bukkit.inventory.ItemStack is = CraftItemStack.asCraftMirror(nms);
-        player.getInventory().setItemInMainHand(is);*/
-        player.sendMessage(mm.deserialize("<red>Removing attributes isn't supported at the moment!"));
+
+        ItemStack nms = CraftItemStack.asNMSCopy(player.getInventory().getItemInMainHand());
+        ItemAttributeModifiers attrModifiers = nms.getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY);
+        final List<Entry> entries = attrModifiers.modifiers();
+        Optional<Entry> optionalEntry = entries.stream().filter(e -> e.attribute().equals(a.attributeHolder)).findFirst();
+
+        ItemAttributeModifiers.Builder builder = ItemAttributeModifiers.builder();
+        optionalEntry.ifPresentOrElse(entry -> {
+            entries.forEach(e -> {
+                if (e.attribute().equals(a.attributeHolder)) {
+                    return;
+                }
+
+                builder.add(entry.attribute(), entry.modifier(), entry.slot(), entry.display());
+            });
+
+            nms.set(DataComponents.ATTRIBUTE_MODIFIERS, builder.build());
+            final org.bukkit.inventory.ItemStack is = CraftItemStack.asCraftMirror(nms);
+            player.getInventory().setItemInMainHand(is);
+            player.sendMessage(mm.deserialize("<dark_aqua>Attribute removed!"));
+        }, () -> player.sendMessage(mm.deserialize("<dark_red>The attribute \"" + string + "\" doesn't exist!")));
+
+
     }
 
     @Override
-    public void listAttr(final Player player)
-    {
+    public void listAttr(Player player) {
         final ItemStack nms = CraftItemStack.asNMSCopy(player.getInventory().getItemInMainHand());
-        final List<AttributeModifier> attrmod = getAttrList(nms.getItem());
-        if (attrmod.isEmpty())
-        {
+
+        List<Entry> entries = nms.getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY).modifiers();
+        if (entries.isEmpty()) {
             player.sendMessage(mm.deserialize("<yellow>This item has no attributes."));
             return;
         }
 
         player.sendMessage(mm.deserialize("<dark_green>Item attributes: "));
-        for (AttributeModifier modifier : attrmod)
-        {
-            player.sendMessage(mm.deserialize("<yellow>" + modifier.name() + ", " + modifier.amount()));
-        }
+        entries.forEach(entry -> {
+            player.sendMessage(mm.deserialize("<yellow>" + entry.attribute().getRegisteredName() + ", " + entry.modifier().amount() + ", " + entry.slot()));
+        });
     }
 }

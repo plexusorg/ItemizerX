@@ -69,7 +69,7 @@ bukkit {
 }
 
 // Adapted from PlotSquared
-val supportedVersions = listOf("1.21.8")
+val supportedVersions = listOf("1.21.8", "1.21.9", "1.21.10")
 tasks {
     supportedVersions.forEach {
         register<RunServer>("runServer-$it") {
@@ -97,8 +97,8 @@ tasks {
 }
 
 dependencies {
-    paperweight.paperDevBundle("1.21.8-R0.1-SNAPSHOT")
-    compileOnly("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("1.21.10-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.21.10-R0.1-SNAPSHOT")
     compileOnly("net.coreprotect:coreprotect:22.4")
     implementation("org.bstats:bstats-base:3.0.2")
     implementation("org.bstats:bstats-bukkit:3.0.2")

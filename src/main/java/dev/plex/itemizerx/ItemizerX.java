@@ -27,7 +27,7 @@ public class ItemizerX extends JavaPlugin
         getCommand("itemizer").setTabCompleter(new ItemizerXTab());
         switch (getServerVersion())
         {
-            case "1.21.8" ->
+            case "1.21.8", "1.21.9", "1.21.10" ->
             {
                 getCommand("itemizer").setExecutor(new ItemizerXCommand());
                 attr = new dev.plex.itemizerx.v1_21_R1.AttributeManager();
@@ -36,7 +36,7 @@ public class ItemizerX extends JavaPlugin
             default ->
             {
                 getLogger().severe("You are trying to run ItemizerX on an incompatible server version.");
-                getLogger().severe("ItemizerX only supports version 1.21.8, disabling plugin.");
+                getLogger().severe("ItemizerX only supports versions 1.21.8 to 1.21.10, disabling plugin.");
                 getServer().getPluginManager().disablePlugin(this);
             }
         }

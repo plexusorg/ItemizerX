@@ -29,7 +29,7 @@ public class AttributeManager implements IAttributeManager {
         if (args.length < 4)
         {
             player.sendMessage(mm.deserialize("<aqua>/itemizer attr add <<white>name<aqua>> <<white>strength<aqua>>" +
-                "[<white>slot<aqua>] <red>- <gold>Add an attribute"));
+                " [<white>slot<aqua>] <red>- <gold>Add an attribute"));
             return;
         }
 

@@ -111,7 +111,8 @@ public class ItemizerXCommand
                         <aqua>/itemizer data <red>- <gold>Edit typed persistent custom data
                         <aqua>/itemizer container <red>- <gold>Edit bundle and container contents
                         <aqua>/itemizer preset <red>- <gold>Save, load, import, and export item presets
-                        <aqua>/itemizer gui <red>- <gold>Open the live item editor
+                        <aqua>/itemizer gui <red>- <gold>Open the item dialog
+                        <aqua>/itemizer inventory <red>- <gold>Open the inventory-editor fallback
                         <aqua>/itemizer lore <red>- <gold>Lore editing command
                         <aqua>/itemizer potion <red>- <gold>Potion editing command
                         <aqua>/itemizer attr <red>- <gold>Attribute editing command
@@ -243,7 +244,12 @@ public class ItemizerXCommand
             {
                 return plugin.presets.execute(player, args);
             }
-            case "gui", "editor" ->
+            case "gui", "editor", "dialog" ->
+            {
+                plugin.dialog.open(player);
+                return true;
+            }
+            case "inventory" ->
             {
                 plugin.editor.open(player);
                 return true;

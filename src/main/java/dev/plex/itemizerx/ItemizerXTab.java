@@ -17,7 +17,7 @@ import java.util.stream.Stream;
 public final class ItemizerXTab
 {
     static final List<String> ROOT = List.of("help", "name", "id", "amount", "undo", "redo", "lore", "potion", "attr",
-            "flag", "enchant", "property", "component", "data", "container", "preset", "gui", "title", "author", "head", "sign", "clearall");
+            "flag", "enchant", "property", "component", "data", "container", "preset", "gui", "dialog", "inventory", "title", "author", "head", "sign", "clearall");
 
     public List<String> complete(CommandSender sender, String[] args)
     {

@@ -16,6 +16,7 @@ public class ItemizerX extends JavaPlugin
     final ItemHistory history = new ItemHistory();
     PresetManager presets;
     ItemEditor editor;
+    ItemDialog dialog;
 
     @Override
     public void onLoad()
@@ -42,7 +43,9 @@ public class ItemizerX extends JavaPlugin
         ench = new EnchantmentManager();
         presets = new PresetManager(this);
         editor = new ItemEditor(this);
+        dialog = new ItemDialog(this);
         getServer().getPluginManager().registerEvents(editor, this);
+        getServer().getPluginManager().registerEvents(dialog, this);
         ItemizerXCommand dispatcher = new ItemizerXCommand();
         ItemizerXTab tab = new ItemizerXTab();
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->

@@ -18,7 +18,7 @@ ItemizerX is a Paper plugin for editing items in game. Version 3 targets Minecra
 - Added structured editors for food, consumable, equippable, cooldown, attack-range, and tool
   components.
 - Added bounded delta-based undo/redo, typed persistent data, item presets, bundle/container
-  editing, and an inventory editor with a live preview.
+  editing, a native Dialog API editor, and an inventory fallback.
 - Updated Paper, CoreProtect, bStats, Gradle plugins, the Gradle wrapper, and the Java toolchain.
 
 ## New commands
@@ -51,6 +51,7 @@ ItemizerX is a Paper plugin for editing items in game. Version 3 targets Minecra
 /itemizer container list|add|remove|clear
 /itemizer preset list|save|load|delete|export|import
 /itemizer gui
+/itemizer inventory
 ```
 
 Attribute operations are `add_number`, `add_scalar`, and `multiply_scalar_1`. Slot groups are
@@ -76,6 +77,8 @@ fully qualified.
   `itemizerx` namespace unless explicitly granted `itemizer.data.foreign`.
 - Raw component input and chat output are size-limited. The editor inventory cancels all movement,
   drag, hotbar, and creative click paths while it is open.
+- Dialog submissions are tied to a five-minute, single-player session and a fingerprint of the
+  previewed held item; changing items before applying causes the edit to be refused.
 - Container `add` copies the off-hand item as an intentional administrative edit; it never
   consumes or moves inventory contents, which keeps undo/redo isolated to the held item.
 

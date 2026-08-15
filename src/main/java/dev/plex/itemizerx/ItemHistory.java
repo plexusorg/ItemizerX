@@ -32,6 +32,11 @@ final class ItemHistory
 
     private final Map<UUID, PlayerHistory> histories = new LinkedHashMap<>(16, 0.75f, true);
 
+    static byte[] fingerprint(ItemStack item)
+    {
+        return ItemState.capture(item).hash();
+    }
+
     synchronized boolean record(Player player, ItemStack before, ItemStack after)
     {
         ItemDelta delta;

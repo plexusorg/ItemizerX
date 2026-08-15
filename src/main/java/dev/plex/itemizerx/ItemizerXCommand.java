@@ -11,10 +11,10 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Color;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
@@ -29,9 +29,10 @@ import org.bukkit.potion.PotionEffectType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
-public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
+public class ItemizerXCommand
 {
     final List<Material> POTIONS = Arrays.asList(Material.POTION, Material.LINGERING_POTION, Material.SPLASH_POTION);
     final Map<String, String> COLOR_TRANSLATION = new HashMap<>(){{
@@ -62,9 +63,13 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
     CoreProtectBridge cpb = new CoreProtectBridge();
     MiniMessage mm = MiniMessage.miniMessage();
 
-    @Override
-    public boolean onCommand(CommandSender sender, Command cmd, String string, String[] args)
+    public boolean execute(CommandSender sender, String[] args)
     {
+        ItemizerX plugin = ItemizerX.plugin;
+        if (plugin == null)
+        {
+            return false;
+        }
         if (!sender.hasPermission("itemizer.use"))
         {
             sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
@@ -73,7 +78,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
 
         if (args.length == 0)
         {
-            sender.sendMessage(mm.deserialize("<aqua>ItemizerX <gold>v" + plugin.getDescription().getVersion() + "<aqua> by <gold>" + StringUtils.join(plugin.getDescription().getAuthors(), ", ")));
+            sender.sendMessage(mm.deserialize("<aqua>ItemizerX <gold>v" + plugin.getPluginMeta().getVersion() + "<aqua> by <gold>" + StringUtils.join(plugin.getPluginMeta().getAuthors(), ", ")));
             sender.sendMessage(mm.deserialize("<aqua>Type <gold><click:run_command:/itemizer help>/itemizer help</click> <aqua>for help"));
             return true;
         }
@@ -90,7 +95,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
         final boolean hasBook = item.getType() == Material.WRITTEN_BOOK;
         final ItemMeta meta = item.getItemMeta();
 
-        switch (args[0])
+        switch (args[0].toLowerCase(Locale.ROOT))
         {
             case "help" ->
             {
@@ -98,6 +103,15 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                         <dark_aqua>=============<white>[<light_purple>ItemizerX Commands<white>]<dark_aqua>=============
                         <aqua>/itemizer name <<white>name<aqua>> <red>- <gold>Name your item
                         <aqua>/itemizer id <<white>id<aqua>> <red>- <gold>Change the item's material
+                        <aqua>/itemizer amount <<white>1-99<aqua>> <red>- <gold>Change the stack amount
+                        <aqua>/itemizer undo <red>- <gold>Undo your last item edit
+                        <aqua>/itemizer redo <red>- <gold>Redo an undone item edit
+                        <aqua>/itemizer property <red>- <gold>Edit item properties
+                        <aqua>/itemizer component <red>- <gold>Inspect or apply any vanilla item component
+                        <aqua>/itemizer data <red>- <gold>Edit typed persistent custom data
+                        <aqua>/itemizer container <red>- <gold>Edit bundle and container contents
+                        <aqua>/itemizer preset <red>- <gold>Save, load, import, and export item presets
+                        <aqua>/itemizer gui <red>- <gold>Open the live item editor
                         <aqua>/itemizer lore <red>- <gold>Lore editing command
                         <aqua>/itemizer potion <red>- <gold>Potion editing command
                         <aqua>/itemizer attr <red>- <gold>Attribute editing command
@@ -165,6 +179,75 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                 sender.sendMessage(mm.deserialize("<dark_green>The material of the item has changed to <reset>'" + material.name() + "'"));
                 return true;
             }
+            case "amount" ->
+            {
+                if (!hasItem)
+                {
+                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
+                    return true;
+                }
+                return ItemCommands.amount(player, item, args);
+            }
+            case "undo" ->
+            {
+                plugin.history.undo(player);
+                return true;
+            }
+            case "redo" ->
+            {
+                plugin.history.redo(player);
+                return true;
+            }
+            case "component", "components", "nbt" ->
+            {
+                if (!hasItem)
+                {
+                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
+                    return true;
+                }
+                // /itemizer nbt is a convenient alias for /itemizer component nbt.
+                if (args[0].equalsIgnoreCase("nbt"))
+                {
+                    args = new String[]{"component", "nbt"};
+                }
+                return ItemCommands.component(player, item, args);
+            }
+            case "property", "properties" ->
+            {
+                if (!hasItem)
+                {
+                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
+                    return true;
+                }
+                return ItemCommands.property(player, item, args);
+            }
+            case "data", "pdc" ->
+            {
+                if (!hasItem)
+                {
+                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
+                    return true;
+                }
+                return ItemDataCommands.execute(player, item, args);
+            }
+            case "container", "contents" ->
+            {
+                if (!hasItem)
+                {
+                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
+                    return true;
+                }
+                return ContainerCommands.execute(player, item, args);
+            }
+            case "preset", "presets" ->
+            {
+                return plugin.presets.execute(player, args);
+            }
+            case "gui", "editor" ->
+            {
+                plugin.editor.open(player);
+                return true;
+            }
             case "lore" ->
             {
                 if (!sender.hasPermission("itemizer.lore"))
@@ -189,7 +272,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                 }
                 else
                 {
-                    switch (args[1])
+                    switch (args[1].toLowerCase(Locale.ROOT))
                     {
                         case "add" ->
                         {
@@ -246,7 +329,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                                 sender.sendMessage(mm.deserialize("<yellow>This item has no lores."));
                                 return true;
                             }
-                            if (index > lores.size())
+                            if (index < 1 || index > lores.size())
                             {
                                 sender.sendMessage(mm.deserialize("<dark_red>The item's lore doesn't have line <white>'" + index + "'"));
                                 return true;
@@ -287,7 +370,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                                 sender.sendMessage(mm.deserialize("<yellow>This item has no lores."));
                                 return true;
                             }
-                            if (index > lores.size())
+                            if (index < 1 || index > lores.size())
                             {
                                 sender.sendMessage(mm.deserialize("<dark_red>The item's lore doesn't have line <white>'" + index + "'"));
                                 return true;
@@ -349,7 +432,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                 }
                 else
                 {
-                    switch (args[1])
+                    switch (args[1].toLowerCase(Locale.ROOT))
                     {
                         case "add" ->
                         {
@@ -364,7 +447,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                                 sender.sendMessage(mm.deserialize("<aqua>/itemizer potion add <<white>effect<aqua>> <<white>level<aqua>> <<white>time[tick]<aqua>> <red>- <gold>Add a potion effect"));
                                 return true;
                             }
-                            PotionEffectType potType = PotionEffectType.getByName(args[2].toUpperCase());
+                            PotionEffectType potType = findPotionEffect(args[2]);
                             if (potType == null)
                             {
                                 sender.sendMessage(mm.deserialize("<dark_red>The potion <white>\"" + args[2] + "<white>\" <dark_red>does not exist!"));
@@ -381,12 +464,12 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                             assert potionMeta != null;
                             if (potionMeta.hasCustomEffect(pot.getType()))
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>This potion already has <white>" + pot.getType().getName()));
+                                sender.sendMessage(mm.deserialize("<dark_red>This potion already has <white>" + pot.getType().getKey()));
                                 return true;
                             }
                             potionMeta.addCustomEffect(pot, false);
                             item.setItemMeta(potionMeta);
-                            sender.sendMessage(mm.deserialize(pot.getType().getName() + " <dark_green>has been added to the potion"));
+                            sender.sendMessage(mm.deserialize(pot.getType().getKey() + " <dark_green>has been added to the potion"));
                             return true;
                         }
                         case "remove" ->
@@ -402,7 +485,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                                 sender.sendMessage(mm.deserialize("<aqua>/itemizer potion remove <<white>effect<aqua>> <red>- <gold>Remove a potion effect"));
                                 return true;
                             }
-                            PotionEffectType potType = PotionEffectType.getByName(args[2].toUpperCase());
+                            PotionEffectType potType = findPotionEffect(args[2]);
                             if (potType == null)
                             {
                                 sender.sendMessage(mm.deserialize("<dark_red>The potion effect <white>\"" + args[2] + "<white>\" <dark_red>does not exist!"));
@@ -412,12 +495,12 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                             assert potionMeta != null;
                             if (!potionMeta.hasCustomEffect(potType))
                             {
-                                sender.sendMessage(mm.deserialize("<dark_red>This potion does not have <white>" + potType.getName()));
+                                sender.sendMessage(mm.deserialize("<dark_red>This potion does not have <white>" + potType.getKey()));
                                 return true;
                             }
                             potionMeta.removeCustomEffect(potType);
                             item.setItemMeta(potionMeta);
-                            sender.sendMessage(mm.deserialize(potType.getName() + " <dark_green>has been removed from the potion"));
+                            sender.sendMessage(mm.deserialize(potType.getKey() + " <dark_green>has been removed from the potion"));
                             return true;
                         }
                         case "change" ->
@@ -507,8 +590,9 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                 {
                     sender.sendMessage(mm.deserialize("""
                             <dark_aqua>===============<white>[<light_purple>Attribute Commands<white>]<dark_aqua>===============
-                            <aqua>/itemizer attr add <<white>name<aqua>> <<white>strength<aqua>> [<white>slot<aqua>] <red>- <gold>Add an attribute
-                            <aqua>/itemizer attr remove <<white>name<aqua>> <red>- <gold>Remove an attribute
+                            <aqua>/itemizer attr add <<white>name<aqua>> <<white>amount<aqua>> [<white>operation<aqua>] [<white>slot group<aqua>] [<white>modifier key<aqua>] <red>- <gold>Add an attribute
+                            <aqua>/itemizer attr edit <<white>name<aqua>> <<white>amount<aqua>> [<white>operation<aqua>] [<white>slot group<aqua>] [<white>modifier key<aqua>] <red>- <gold>Edit an attribute modifier
+                            <aqua>/itemizer attr remove <<white>name<aqua>> [<white>modifier key<aqua>] <red>- <gold>Remove one or all matching modifiers
                             <aqua>/itemizer attr list <red>- <gold>List all item's attributes
                             <aqua>/itemizer attr listall <red>- <gold>List all supported attributes"""));
                     return true;
@@ -520,7 +604,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                 }
                 else
                 {
-                    switch (args[1])
+                    switch (args[1].toLowerCase(Locale.ROOT))
                     {
                         case "add" ->
                         {
@@ -532,6 +616,16 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                             plugin.attr.addAttr(player, args);
                             return true;
                         }
+                        case "edit" ->
+                        {
+                            if (!sender.hasPermission("itemizer.attr.edit"))
+                            {
+                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
+                                return true;
+                            }
+                            plugin.attr.editAttr(player, args);
+                            return true;
+                        }
                         case "remove" ->
                         {
                             if (!sender.hasPermission("itemizer.attr.remove"))
@@ -540,12 +634,11 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                                 return true;
                             }
 
-                            if (args.length != 3) {
+                            if (args.length < 3) {
                                 return true;
                             }
 
-                            // NPE to fix here
-                            plugin.attr.removeAttr(player, args[2]);
+                            plugin.attr.removeAttr(player, args);
                             return true;
                         }
                         case "list" ->
@@ -598,7 +691,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                     sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
                     return true;
                 }
-                switch (args[1])
+                switch (args[1].toLowerCase(Locale.ROOT))
                 {
                     case "add" ->
                     {
@@ -729,7 +822,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                     sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
                     return true;
                 }
-                switch (args[1])
+                switch (args[1].toLowerCase(Locale.ROOT))
                 {
                     case "add" ->
                     {
@@ -867,7 +960,7 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                 }
                 final SkullMeta skullMeta = (SkullMeta) meta;
                 assert skullMeta != null;
-                skullMeta.setOwner(name);
+                skullMeta.setOwningPlayer(plugin.getServer().getOfflinePlayer(name));
                 item.setItemMeta(skullMeta);
                 sender.sendMessage(mm.deserialize("<dark_green>The player of the head has been set to <white>'" + name + "<white>'"));
                 return true;
@@ -896,9 +989,9 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
                 {
                     return true;
                 }
-                else if (line > 4)
+                else if (line < 1 || line > 4)
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>There's a maximum of 4 lines on a sign"));
+                    sender.sendMessage(mm.deserialize("<dark_red>Sign lines must be between 1 and 4"));
                     return true;
                 }
                 Component text = colorize(StringUtils.join(args, " ", 2, args.length));
@@ -962,5 +1055,12 @@ public class ItemizerXCommand implements CommandExecutor, ItemizerXBase
             sender.sendMessage(mm.deserialize("<white>\"" + string + "<white>\"<dark_red> is not a valid number!"));
         }
         return null;
+    }
+
+    private PotionEffectType findPotionEffect(String input)
+    {
+        String value = input.toLowerCase(Locale.ROOT);
+        NamespacedKey key = NamespacedKey.fromString(value.contains(":") ? value : "minecraft:" + value);
+        return key == null ? null : Registry.MOB_EFFECT.get(key);
     }
 }

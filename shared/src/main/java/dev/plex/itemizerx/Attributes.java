@@ -1,63 +1,55 @@
 package dev.plex.itemizerx;
 
-import net.minecraft.core.Holder;
-import net.minecraft.world.entity.ai.attributes.Attribute;
-import org.apache.commons.lang3.StringUtils;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
+import org.bukkit.attribute.Attribute;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
-public enum Attributes
+/**
+ * Registry-backed attribute lookup. This intentionally contains no fixed list: every attribute
+ * supplied by the running Minecraft version (including datapack entries and new 26.x attributes)
+ * is available automatically.
+ */
+public final class Attributes
 {
-    MAX_HEALTH("generic.max_health", 0, net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH),
-    FOLLOW_RANGE("generic.follow_range", 1, net.minecraft.world.entity.ai.attributes.Attributes.FOLLOW_RANGE),
-    KNOCKBACK_RESISTANCE("generic.knockback_resistance", 1, net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE),
-    MOVEMENT_SPEED("generic.movement_speed", 1, net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED),
-    FLYING_SPEED("generic.flying_speed", 1, net.minecraft.world.entity.ai.attributes.Attributes.FLYING_SPEED),
-    DAMAGE("generic.attack_damage", 0, net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE),
-    ATTACK_KNOCKBACK("generic.attack_knockback", 0, net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_KNOCKBACK),
-    ATTACK_SPEED("generic.attack_speed", 1, net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_SPEED),
-    ARMOR("generic.armor", 0, net.minecraft.world.entity.ai.attributes.Attributes.ARMOR),
-    ARMOR_TOUGHNESS("generic.armor_toughness", 0, net.minecraft.world.entity.ai.attributes.Attributes.ARMOR_TOUGHNESS),
-    LUCK("generic.luck", 0, net.minecraft.world.entity.ai.attributes.Attributes.LUCK),
-    JUMP_STRENGTH("generic.jump_strength", 1, net.minecraft.world.entity.ai.attributes.Attributes.JUMP_STRENGTH),
-    ZOMBIE_REINFORCEMENTS("zombie.spawn_reinforcements", 1, net.minecraft.world.entity.ai.attributes.Attributes.SPAWN_REINFORCEMENTS_CHANCE);
-
-    public final String mcName;
-    public final int op;
-    public final Holder<Attribute> attributeHolder;
-
-    Attributes(String mcName, int op, Holder<Attribute> attributeHolder)
+    private Attributes()
     {
-        this.mcName = mcName;
-        this.op = op;
-        this.attributeHolder = attributeHolder;
     }
 
-    public static Attributes get(String name)
+    public static Attribute get(String input)
     {
-        for (Attributes attr : values())
+        String name = input.toLowerCase(Locale.ROOT);
+        NamespacedKey key = NamespacedKey.fromString(name.contains(":") ? name : "minecraft:" + name);
+        Attribute attribute = key == null ? null : Registry.ATTRIBUTE.get(key);
+        if (attribute != null)
         {
-            if (attr.name().equalsIgnoreCase(name) || attr.mcName.equalsIgnoreCase(name.replace("minecraft:", "")))
-            {
-                return attr;
-            }
+            return attribute;
         }
-        return null;
+
+        // Accept the pre-1.21 names that ItemizerX historically exposed.
+        String legacyName = name.replace("minecraft:", "")
+                .replaceFirst("^(generic|player|zombie)\\.", "");
+        legacyName = switch (legacyName)
+        {
+            case "damage" -> "attack_damage";
+            case "zombie_reinforcements", "spawn_reinforcements" -> "spawn_reinforcements_chance";
+            default -> legacyName;
+        };
+        return Registry.ATTRIBUTE.get(NamespacedKey.minecraft(legacyName));
     }
 
     public static String getAttributes()
     {
-        return StringUtils.join(values(), ", ");
+        return String.join(", ", getAttributeList());
     }
 
     public static List<String> getAttributeList()
     {
-        List<String> attributes = new ArrayList<>();
-        for (Attributes attr : values())
-        {
-            attributes.add(attr.name());
-        }
-        return attributes;
+        return Registry.ATTRIBUTE.keyStream()
+                .map(NamespacedKey::toString)
+                .sorted()
+                .toList();
     }
 }

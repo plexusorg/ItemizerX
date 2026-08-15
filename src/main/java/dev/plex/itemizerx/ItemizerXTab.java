@@ -3,129 +3,136 @@ package dev.plex.itemizerx;
 import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
 import org.bukkit.Material;
-import org.bukkit.command.Command;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.Stream;
 
-public class ItemizerXTab implements TabCompleter
+public final class ItemizerXTab
 {
-    @Override
-    public List<String> onTabComplete(CommandSender sender, Command cmd, String string, String[] args)
+    static final List<String> ROOT = List.of("help", "name", "id", "amount", "undo", "redo", "lore", "potion", "attr",
+            "flag", "enchant", "property", "component", "data", "container", "preset", "gui", "title", "author", "head", "sign", "clearall");
+
+    public List<String> complete(CommandSender sender, String[] args)
     {
-        if (args.length == 1)
+        if (args.length == 0)
         {
-            return Arrays.asList("help", "id", "lore", "potion", "attr", "flag", "enchant", "title", "author",
-                    "head", "sign", "clearall");
+            return ROOT;
         }
-
-        if (args.length == 2)
+        Stream<String> choices = switch (args.length)
         {
-            switch (args[0])
+            case 1 -> ROOT.stream();
+            case 2 -> secondArgument(args[0]);
+            case 3 -> thirdArgument(sender, args[0], args[1]);
+            case 4 -> fourthArgument(args[0], args[1]);
+            case 5 -> args[0].equalsIgnoreCase("attr")
+                    && (args[1].equalsIgnoreCase("add") || args[1].equalsIgnoreCase("edit"))
+                    ? Arrays.stream(AttributeManager.OPERATIONS) : Stream.empty();
+            case 6 -> args[0].equalsIgnoreCase("attr")
+                    && (args[1].equalsIgnoreCase("add") || args[1].equalsIgnoreCase("edit"))
+                    ? Arrays.stream(AttributeManager.SLOT_GROUPS) : Stream.empty();
+            default -> Stream.empty();
+        };
+
+        String current = args[args.length - 1].toLowerCase(Locale.ROOT);
+        return choices.filter(value -> value.toLowerCase(Locale.ROOT).startsWith(current)).sorted().toList();
+    }
+
+    private static Stream<String> secondArgument(String root)
+    {
+        return switch (root.toLowerCase(Locale.ROOT))
+        {
+            case "id" -> Arrays.stream(Material.values()).filter(Material::isItem).map(material -> friendly(material.getKey()));
+            case "lore" -> Stream.of("add", "remove", "change", "clear");
+            case "potion" -> Stream.of("add", "remove", "change", "color", "list");
+            case "attr" -> Stream.of("add", "edit", "remove", "list", "listall");
+            case "flag", "enchant" -> Stream.of("add", "remove", "list", "listall");
+            case "component", "components" -> Stream.of("show", "nbt", "apply", "replace", "reset", "food",
+                    "consumable", "equippable", "cooldown", "attack-range", "tool");
+            case "property", "properties" -> Arrays.stream(ItemCommands.PROPERTIES);
+            case "data", "pdc" -> Stream.of("list", "get", "set", "remove");
+            case "container", "contents" -> Stream.of("list", "add", "remove", "clear");
+            case "preset", "presets" -> Stream.of("list", "save", "load", "delete", "export", "import");
+            default -> Stream.empty();
+        };
+    }
+
+    private static Stream<String> thirdArgument(CommandSender sender, String root, String action)
+    {
+        if ((root.equalsIgnoreCase("preset") || root.equalsIgnoreCase("presets"))
+                && (action.equalsIgnoreCase("load") || action.equalsIgnoreCase("delete") || action.equalsIgnoreCase("export")))
+        {
+            ItemizerX plugin = ItemizerX.plugin;
+            return sender instanceof Player player && plugin != null && plugin.presets != null
+                    ? plugin.presets.names(player.getUniqueId()).stream() : Stream.empty();
+        }
+        if ((root.equalsIgnoreCase("data") || root.equalsIgnoreCase("pdc"))
+                && (action.equalsIgnoreCase("get") || action.equalsIgnoreCase("set") || action.equalsIgnoreCase("remove")))
+        {
+            return sender instanceof Player player
+                    ? player.getInventory().getItemInMainHand().getPersistentDataContainer().getKeys().stream().map(ItemizerXTab::friendly)
+                    : Stream.empty();
+        }
+        if ((action.equalsIgnoreCase("add") || action.equalsIgnoreCase("edit") || action.equalsIgnoreCase("remove")))
+        {
+            return switch (root.toLowerCase(Locale.ROOT))
             {
-                case "id":
-                {
-                    List<String> materials = new ArrayList<>();
-                    for (Material material : Material.values())
-                    {
-                        materials.add(material.name());
-                    }
-                    return materials;
-                }
-                case "lore":
-                {
-                    return Arrays.asList("add", "remove", "change", "clear");
-                }
-                case "potion":
-                {
-                    return Arrays.asList("add", "remove", "change", "color", "list");
-                }
-                case "attr":
-                case "flag":
-                case "enchant":
-                {
-                    return Arrays.asList("add", "remove", "list", "listall");
-                }
-                default:
-                {
-                    return Collections.emptyList();
-                }
-            }
+                case "potion" -> Registry.MOB_EFFECT.keyStream().map(ItemizerXTab::friendly);
+                case "attr" -> Registry.ATTRIBUTE.keyStream().map(ItemizerXTab::friendly);
+                case "enchant" -> RegistryAccess.registryAccess().getRegistry(RegistryKey.ENCHANTMENT)
+                        .keyStream().map(ItemizerXTab::friendly);
+                case "flag" -> Arrays.stream(ItemFlag.values()).map(flag -> flag.name().toLowerCase(Locale.ROOT));
+                default -> Stream.empty();
+            };
         }
 
-        if (args.length == 3)
+        if (root.equalsIgnoreCase("property") || root.equalsIgnoreCase("properties"))
         {
-            switch (args[0])
+            return switch (action.toLowerCase(Locale.ROOT))
             {
-                case "potion":
-                {
-                    switch (args[1])
-                    {
-                        case "add":
-                        case "remove":
-                        {
-                            List<String> potions = new ArrayList<>();
-                            RegistryAccess.registryAccess().getRegistry(RegistryKey.MOB_EFFECT).iterator().forEachRemaining(effect -> {
-                                potions.add(effect.getKey().getKey());
-                            });
-                            return potions;
-                        }
-                    }
-                }
-                case "attr":
-                {
-                    switch (args[1])
-                    {
-                        case "add":
-                        case "remove":
-                        {
-                            return Attributes.getAttributeList();
-                        }
-                    }
-                }
-                case "flag":
-                {
-                    switch (args[1])
-                    {
-                        case "add":
-                        case "remove":
-                        {
-                            List<String> flags = new ArrayList<>();
-                            for (ItemFlag flag : ItemFlag.values())
-                            {
-                                flags.add(flag.name());
-                            }
-                            return flags;
-                        }
-                    }
-                }
-                case "enchant":
-                {
-                    switch (args[1])
-                    {
-                        case "add":
-                        case "remove":
-                        {
-                            List<String> enchantments = new ArrayList<>();
-                            RegistryAccess.registryAccess().getRegistry(RegistryKey.ENCHANTMENT).iterator().forEachRemaining(enchantment -> {
-                                enchantments.add(enchantment.getKey().getKey());
-                            });
-                            return enchantments;
-                        }
-                    }
-                }
-                default:
-                {
-                    return Collections.emptyList();
-                }
-            }
+                case "unbreakable", "glider", "hide-tooltip" -> Stream.of("true", "false");
+                case "glint" -> Stream.of("true", "false", "reset");
+                case "damage", "max-damage", "max-stack", "enchantable", "item-model", "tooltip-style" -> Stream.of("reset");
+                case "rarity" -> Stream.of("common", "uncommon", "rare", "epic", "reset");
+                default -> Stream.empty();
+            };
         }
+        if (root.equalsIgnoreCase("component") || root.equalsIgnoreCase("components"))
+        {
+            return switch (action.toLowerCase(Locale.ROOT))
+            {
+                case "food", "consumable", "cooldown", "attack-range", "tool" -> Stream.of("reset", "remove");
+                case "equippable" -> Stream.of("head", "chest", "legs", "feet", "hand", "offhand", "body", "saddle", "reset", "remove");
+                default -> Stream.empty();
+            };
+        }
+        return Stream.empty();
+    }
 
-        return Collections.emptyList();
+    private static Stream<String> fourthArgument(String root, String action)
+    {
+        if ((root.equalsIgnoreCase("data") || root.equalsIgnoreCase("pdc"))
+                && (action.equalsIgnoreCase("get") || action.equalsIgnoreCase("set")))
+        {
+            return Arrays.stream(ItemDataCommands.TYPES);
+        }
+        if ((root.equalsIgnoreCase("component") || root.equalsIgnoreCase("components"))
+                && action.equalsIgnoreCase("consumable"))
+        {
+            return Stream.of("eat", "drink", "block", "bow", "trident", "crossbow", "spyglass",
+                    "toot_horn", "brush", "bundle", "spear", "none");
+        }
+        return Stream.empty();
+    }
+
+    private static String friendly(NamespacedKey key)
+    {
+        return key.getNamespace().equals(NamespacedKey.MINECRAFT) ? key.getKey() : key.toString();
     }
 }

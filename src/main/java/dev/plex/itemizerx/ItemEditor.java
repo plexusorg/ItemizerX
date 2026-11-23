@@ -88,7 +88,7 @@ final class ItemEditor implements Listener
                 record = false;
                 ItemCommands.showComponents(player, held);
             }
-            case 22 -> held.setItemMeta(null);
+            case 22 -> ItemCommands.clearComponents(player, held);
             case 24 ->
             {
                 record = false;

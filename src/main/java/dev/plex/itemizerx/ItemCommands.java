@@ -15,6 +15,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemRarity;
@@ -23,11 +24,14 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
 
 final class ItemCommands
 {
     private static final int MAX_COMPONENT_INPUT = 16 * 1024;
+    private static final Key CUSTOM_DATA = Key.key("minecraft:custom_data");
     private static final int MAX_COMPONENT_OUTPUT = 12 * 1024;
     static final String[] PROPERTIES = {"list", "unbreakable", "glint", "glider", "hide-tooltip", "damage",
             "max-damage", "max-stack", "enchantable", "rarity", "item-model", "tooltip-style"};
@@ -66,20 +70,34 @@ final class ItemCommands
 
     static boolean component(Player player, ItemStack item, String[] args)
     {
-        if (!player.hasPermission("itemizer.component"))
-        {
-            return noPermission(player);
-        }
         if (args.length < 2)
         {
             componentHelp(player);
             return true;
         }
 
+        String action = args[1].toLowerCase(Locale.ROOT);
+        String permission = switch (action)
+        {
+            case "show", "nbt" -> "itemizer.component";
+            case "apply", "replace" -> "itemizer.component.raw";
+            case "reset", "clear", "food", "consumable", "equippable", "cooldown", "use-cooldown", "attack-range", "range", "tool" -> "itemizer.component.edit";
+            default -> null;
+        };
+        if (permission == null)
+        {
+            componentHelp(player);
+            return true;
+        }
+        if (!player.hasPermission(permission))
+        {
+            return noPermission(player);
+        }
+
         ItemMeta meta = item.getItemMeta();
         try
         {
-            switch (args[1].toLowerCase(Locale.ROOT))
+            switch (action)
             {
             case "show" ->
             {
@@ -91,6 +109,10 @@ final class ItemCommands
             }
             case "apply" ->
             {
+                if (!rawAllowed(player, args))
+                {
+                    return true;
+                }
                 if (args.length < 3)
                 {
                     Messages.error(player, "/itemizer component apply <[component=value,...]>");
@@ -102,10 +124,14 @@ final class ItemCommands
                     Messages.error(player, "A component patch must begin with '['.");
                     return true;
                 }
-                replaceFromString(player, item, item.getType().getKey() + components);
+                applyPatch(player, item, components);
             }
             case "replace" ->
             {
+                if (!rawAllowed(player, args))
+                {
+                    return true;
+                }
                 if (args.length < 3)
                 {
                     Messages.error(player, "/itemizer component replace <minecraft:item[components]>");
@@ -115,7 +141,7 @@ final class ItemCommands
             }
             case "reset", "clear" ->
             {
-                item.setItemMeta(null);
+                clearComponents(player, item);
                 Messages.success(player, "All custom item components were cleared.");
             }
             case "food" -> editFood(player, item, args);
@@ -209,6 +235,53 @@ final class ItemCommands
         item.setItemMeta(meta);
         Messages.success(player, "Property '" + property + "' updated.");
         return true;
+    }
+
+    /**
+     * Raw components can build any item the parser accepts, such as books whose text runs commands
+     * for the reader. custom_data holds other plugins' data, so it also needs itemizer.data.foreign.
+     */
+    private static boolean rawAllowed(Player player, String[] args)
+    {
+        if (StringUtils.join(args, " ").toLowerCase(Locale.ROOT).contains("custom_data")
+                && !player.hasPermission("itemizer.data.foreign"))
+        {
+            Messages.error(player, "Editing custom_data needs itemizer.data.foreign, because it holds other plugins' data.");
+            return false;
+        }
+        return true;
+    }
+
+    /** Sets the components the patch sets and removes the ones it removes; the item keeps every other component. */
+    @SuppressWarnings("UnstableApiUsage")
+    private static void applyPatch(Player player, ItemStack item, String components)
+    {
+        if (components.length() > MAX_COMPONENT_INPUT)
+        {
+            Messages.error(player, "Item component input is limited to " + MAX_COMPONENT_INPUT + " characters.");
+            return;
+        }
+        ItemStack patch;
+        try
+        {
+            patch = Bukkit.getItemFactory().createItemStack(item.getType().getKey() + components);
+        }
+        catch (IllegalArgumentException ex)
+        {
+            Messages.error(player, "Minecraft rejected that item syntax: " + ex.getMessage());
+            return;
+        }
+        Set<DataComponentType> changed = new HashSet<>();
+        for (DataComponentType type : Registry.DATA_COMPONENT_TYPE)
+        {
+            if (patch.isDataOverridden(type))
+            {
+                changed.add(type);
+            }
+        }
+        item.copyDataFrom(patch, type -> changed.contains(type) && patch.hasData(type));
+        changed.stream().filter(type -> !patch.hasData(type)).forEach(item::unsetData);
+        Messages.success(player, "Item components updated.");
     }
 
     private static void replaceFromString(Player player, ItemStack oldItem, String input)
@@ -434,6 +507,21 @@ final class ItemCommands
         }
         player.sendMessage(Component.text("item-model=" + (meta.hasItemModel() ? meta.getItemModel() : "default")
                 + ", tooltip-style=" + (meta.hasTooltipStyle() ? meta.getTooltipStyle() : "default"), NamedTextColor.YELLOW));
+    }
+
+    /**
+     * Clears every component the item changed. Other plugins' data stays unless the player has
+     * itemizer.data.foreign, because removing a tag such as soulbound is the same as editing it.
+     */
+    @SuppressWarnings("UnstableApiUsage")
+    static void clearComponents(Player player, ItemStack item)
+    {
+        ItemStack before = item.clone();
+        item.setItemMeta(null);
+        if (!player.hasPermission("itemizer.data.foreign"))
+        {
+            item.copyDataFrom(before, type -> type.key().equals(CUSTOM_DATA));
+        }
     }
 
     /** Whether the item shows the glint: its override, or otherwise whether it is enchanted. */

@@ -37,6 +37,16 @@ final class ItemHistory
         return ItemState.capture(item).hash();
     }
 
+    /** The size of the item's component patch, in UTF-8 bytes. */
+    static int componentBytes(ItemStack item)
+    {
+        if (item == null || item.getType().isAir() || !item.hasItemMeta())
+        {
+            return 0;
+        }
+        return item.getItemMeta().getAsComponentString().getBytes(StandardCharsets.UTF_8).length;
+    }
+
     synchronized boolean record(Player player, ItemStack before, ItemStack after)
     {
         ItemDelta delta;

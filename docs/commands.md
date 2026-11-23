@@ -21,7 +21,8 @@ arguments such as names and lore accept MiniMessage tags (`<red>`, `<bold>`) and
 | `gui` | Opens the dialog editor (aliases `dialog`, `editor`) | `itemizer.gui` |
 | `inventory` | Opens the inventory editor | `itemizer.gui` |
 
-Undo keeps up to 50 of your edits, made by command or in an editor, until you leave the server. Undo and redo refuse to run when the item in
+Undo keeps up to 50 of your edits, made by command or in an editor, until you leave the server.
+A command that would make the held item's data larger than 32 KiB is undone. Undo and redo refuse to run when the item in
 your hand is not the one that was edited.
 
 ## Lore
@@ -88,8 +89,10 @@ These need a potion, splash potion, or lingering potion in your hand.
 | `head <player>` | Sets the player of a player head | `itemizer.head` |
 | `sign <1-4> <text>` | Sets a line of the sign you look at, on the side facing you | `itemizer.sign` |
 
-`sign` edits a block, not the held item, and is logged to Oasis or CoreProtect when either is
-installed.
+`sign` edits a block, not the held item, the way a player does: a protection plugin can refuse
+it, a block logger such as Oasis or CoreProtect records it, and a waxed sign can't be changed.
+Sign text keeps colors and formatting. Click events, selectors, scores, and NBT also need
+`itemizer.sign.interactive`.
 
 ## Properties
 
@@ -108,15 +111,17 @@ All need `itemizer.property`. `property list` shows the item's values.
 
 ## Data components
 
-All need `itemizer.component`. `nbt` on its own is short for `component nbt`.
+`show` and `nbt` need `itemizer.component`, `apply` and `replace` need `itemizer.component.raw`,
+and the rest need `itemizer.component.edit`. An `apply` or `replace` that names `custom_data` also
+needs `itemizer.data.foreign`. `nbt` on its own is short for `component nbt`.
 
 | Command | Does |
 |---|---|
 | `component show` | Shows the item as `/give` syntax |
 | `component nbt` | Shows the item's data as SNBT |
-| `component apply <[component=value,...]>` | Applies components in `/give` syntax, such as `[max_stack_size=1]` |
+| `component apply <[component=value,...]>` | Sets or removes components in `/give` syntax, such as `[max_stack_size=1,!food]`; the item keeps the rest |
 | `component replace <item[component=value,...]>` | Replaces the item with a complete `/give` item |
-| `component reset` | Clears every component the item changed |
+| `component reset` | Clears every component the item changed, except other plugins' data |
 | `component food <nutrition> <saturation> [always-eat]` | Makes the item food |
 | `component consumable <seconds> <animation> [particles] [sound]` | Sets how the item is consumed |
 | `component equippable <slot> [swappable] [dispensable] [damage-on-hurt]` | Makes the item equippable |
@@ -164,12 +169,12 @@ presets.
 | `preset load <name>` | Replaces the held item with the preset |
 | `preset delete <name>` | Deletes a preset |
 | `preset export <name>` | Gives you a token to copy; click the message to copy it |
-| `preset import <name> <token>` | Saves a token from `export` as a preset |
+| `preset import <name> [token]` | Saves a token from `export` as a preset; without a token, opens a box to paste it in |
 
 ## Permissions
 
-Every permission is granted to ops by default. `itemizer.*` grants all of them. Each group node
-grants every node in its group:
+Every permission is granted to ops by default. Each command checks only its own node, and a group
+node grants every node in its group:
 
 | Group | Grants |
 |---|---|
@@ -179,9 +184,27 @@ grants every node in its group:
 | `itemizer.flag` | `itemizer.flag.add`, `.remove`, `.list`, `.listall` |
 | `itemizer.potion` | `itemizer.potion.add`, `.remove`, `.change`, `.color`, `.list` |
 
-A command in a group checks the group node and its own node: `lore add` needs both
-`itemizer.lore` and `itemizer.lore.add`. To give only some commands of a group, grant the group
-node and negate the commands you want to withhold, such as `-itemizer.lore.clear`.
+### Permission packs
 
-`itemizer.data` does not grant `itemizer.data.foreign`. Grant it separately, or through
-`itemizer.*`.
+Each pack grants the pack above it in this table and adds its own nodes. Pick the highest one you
+trust a group of players with.
+
+| Pack | Adds | What players can do with it |
+|---|---|---|
+| `itemizer.pack.cosmetic` | `itemizer.use`, `.name`, `.lore`, `.title`, `.author`, `.head`, `.flag`, `.sign`, `.clearall`, `.component`, and the read-only `enchant`, `attr`, and `potion` lists | Change how their items and signs look, and read an item's details. |
+| `itemizer.pack.gameplay` | `itemizer.enchant`, `.attr`, `.potion`, `.property`, `.component.edit`, `.data` | Make the items they have as powerful as Minecraft allows, such as level 255 enchantments. |
+| `itemizer.pack.creation` | `itemizer.id`, `.amount`, `.container`, `.preset`, `.gui` | Make any item, stack any item to 99, and copy items into containers and presets. |
+| `itemizer.*` | the sensitive permissions below | Everything. |
+
+`clearall` and `component reset` keep other plugins' data on the item unless the player also has
+`itemizer.data.foreign`, so the cosmetic pack can't strip a tag such as soulbound.
+
+### Sensitive permissions
+
+These three are only in `itemizer.*`. Give them to staff you trust with operator powers.
+
+| Permission | Why |
+|---|---|
+| `itemizer.sign.interactive` | A sign runs its click commands at permission level 2 for whoever clicks it, which covers `/give`, `/gamemode`, `/fill`, and `/kill`. |
+| `itemizer.component.raw` | Builds any item the `/give` parser accepts, such as a book whose text runs a command as the staff member who clicks it, or a spawn egg that carries custom entity data. |
+| `itemizer.data.foreign` | Writes other plugins' item data, which can forge their items, such as crate keys or vouchers, or strip tags they rely on. |

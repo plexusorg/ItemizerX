@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
  */
 final class ItemizerXBrigadierCommand
 {
+    private static final int MAX_ITEM_BYTES = 32 * 1024;
     private static final Set<String> SUBCOMMANDS = new LinkedHashSet<>(ItemizerXTab.ROOT);
 
     static
@@ -58,9 +59,24 @@ final class ItemizerXBrigadierCommand
         Player player = context.getSource().getSender() instanceof Player value ? value : null;
         ItemStack before = player == null ? null : player.getInventory().getItemInMainHand().clone();
         command.execute(context.getSource().getSender(), arguments);
-        if (player != null && shouldRecord(arguments))
+        if (player == null)
         {
-            plugin.history.record(player, before, player.getInventory().getItemInMainHand().clone());
+            return Command.SINGLE_SUCCESS;
+        }
+
+        ItemStack after = player.getInventory().getItemInMainHand();
+        int size = ItemHistory.componentBytes(after);
+        if (size > MAX_ITEM_BYTES && size > ItemHistory.componentBytes(before))
+        {
+            // Items this large can kick the players who load them, for example from a chest or an item frame.
+            player.getInventory().setItemInMainHand(before);
+            Messages.error(player, "That edit would make the item's data larger than " + MAX_ITEM_BYTES / 1024
+                    + " KiB, so it was undone.");
+            return Command.SINGLE_SUCCESS;
+        }
+        if (shouldRecord(arguments))
+        {
+            plugin.history.record(player, before, after.clone());
         }
         return Command.SINGLE_SUCCESS;
     }

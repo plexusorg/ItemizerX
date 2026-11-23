@@ -4,6 +4,8 @@ import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
+import net.kyori.adventure.text.minimessage.tag.standard.StandardTags;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
@@ -12,8 +14,9 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
+import org.bukkit.block.sign.Side;
+import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
@@ -38,6 +41,12 @@ import java.util.stream.Collectors;
 final class ItemizerXCommand
 {
     private static final MiniMessage MM = MiniMessage.miniMessage();
+    /** Formatting only: no click events, selectors, scores, or NBT, which a sign resolves at permission level 2. */
+    private static final MiniMessage SAFE_MM = MiniMessage.builder().tags(TagResolver.resolver(
+            StandardTags.color(), StandardTags.decorations(), StandardTags.gradient(), StandardTags.rainbow(),
+            StandardTags.transition(), StandardTags.reset(), StandardTags.font(), StandardTags.hoverEvent(),
+            StandardTags.keybind(), StandardTags.translatable(), StandardTags.insertion(), StandardTags.shadowColor(),
+            StandardTags.pride())).build();
     private static final Set<Material> POTIONS = Set.of(Material.POTION, Material.LINGERING_POTION, Material.SPLASH_POTION);
     private static final Pattern LEGACY_CODE = Pattern.compile("&[a-fk-or0-9]", Pattern.CASE_INSENSITIVE);
     private static final Pattern PLAYER_NAME = Pattern.compile("[A-Za-z0-9_]{1,16}");
@@ -60,13 +69,13 @@ final class ItemizerXCommand
             new HelpEntry("redo", "", "Redo an undone item edit", "itemizer.use"),
             new HelpEntry("gui", "", "Open the item dialog", "itemizer.gui"),
             new HelpEntry("inventory", "", "Open the inventory editor", "itemizer.gui"),
-            new HelpEntry("lore", "", "Lore commands", "itemizer.lore"),
-            new HelpEntry("enchant", "", "Enchantment commands", "itemizer.enchant"),
-            new HelpEntry("attr", "", "Attribute commands", "itemizer.attr"),
-            new HelpEntry("flag", "", "Item flag commands", "itemizer.flag"),
-            new HelpEntry("potion", "", "Potion commands", "itemizer.potion"),
+            new HelpEntry("lore", "", "Lore commands", "itemizer.lore.add", "itemizer.lore.remove", "itemizer.lore.change", "itemizer.lore.clear"),
+            new HelpEntry("enchant", "", "Enchantment commands", "itemizer.enchant.add", "itemizer.enchant.remove", "itemizer.enchant.list", "itemizer.enchant.listall"),
+            new HelpEntry("attr", "", "Attribute commands", "itemizer.attr.add", "itemizer.attr.edit", "itemizer.attr.remove", "itemizer.attr.list", "itemizer.attr.listall"),
+            new HelpEntry("flag", "", "Item flag commands", "itemizer.flag.add", "itemizer.flag.remove", "itemizer.flag.list", "itemizer.flag.listall"),
+            new HelpEntry("potion", "", "Potion commands", "itemizer.potion.add", "itemizer.potion.remove", "itemizer.potion.change", "itemizer.potion.color", "itemizer.potion.list"),
             new HelpEntry("property", "", "Edit item properties", "itemizer.property"),
-            new HelpEntry("component", "", "Inspect or apply any vanilla item component", "itemizer.component"),
+            new HelpEntry("component", "", "Inspect or edit vanilla item components", "itemizer.component", "itemizer.component.edit", "itemizer.component.raw"),
             new HelpEntry("data", "", "Edit typed persistent custom data", "itemizer.data"),
             new HelpEntry("container", "", "Edit bundle and container contents", "itemizer.container"),
             new HelpEntry("preset", "", "Save, load, import, and export item presets", "itemizer.preset"),
@@ -157,7 +166,7 @@ final class ItemizerXCommand
             {
                 if (!denied(player, "itemizer.clearall") && holding(player, item))
                 {
-                    item.setItemMeta(null);
+                    ItemCommands.clearComponents(player, item);
                     send(player, "<dark_green>All data cleared from your item");
                 }
             }
@@ -167,7 +176,7 @@ final class ItemizerXCommand
 
     private void help(Player player, String[] args)
     {
-        List<HelpEntry> entries = HELP.stream().filter(entry -> player.hasPermission(entry.permission())).toList();
+        List<HelpEntry> entries = HELP.stream().filter(entry -> Arrays.stream(entry.permissions()).anyMatch(player::hasPermission)).toList();
         int pages = Math.max(1, (entries.size() + HELP_PAGE_SIZE - 1) / HELP_PAGE_SIZE);
         int page = 1;
         if (args.length > 1)
@@ -241,10 +250,6 @@ final class ItemizerXCommand
 
     private void lore(Player player, ItemStack item, String[] args)
     {
-        if (denied(player, "itemizer.lore"))
-        {
-            return;
-        }
         String add = "<aqua>/itemizer lore add <<white>text<aqua>> <red>- <gold>Add a line of text to your item's lore";
         String remove = "<aqua>/itemizer lore remove <<white>index<aqua>> <red>- <gold>Remove a line of text from your item's lore";
         String change = "<aqua>/itemizer lore change <<white>index<aqua>> <<white>text<aqua>> <red>- <gold>Change a line of text in your item's lore";
@@ -360,10 +365,6 @@ final class ItemizerXCommand
 
     private void potion(Player player, ItemStack item, String[] args)
     {
-        if (denied(player, "itemizer.potion"))
-        {
-            return;
-        }
         String add = "<aqua>/itemizer potion add <<white>effect<aqua>> <<white>level<aqua>> <<white>ticks<aqua>> <red>- <gold>Add a potion effect";
         String remove = "<aqua>/itemizer potion remove <<white>effect<aqua>> <red>- <gold>Remove a potion effect";
         String change = "<aqua>/itemizer potion change <<white>potion|splash_potion|lingering_potion<aqua>> <red>- <gold>Change the potion type";
@@ -495,10 +496,6 @@ final class ItemizerXCommand
 
     private void attribute(Player player, ItemStack item, String[] args)
     {
-        if (denied(player, "itemizer.attr"))
-        {
-            return;
-        }
         if (args.length == 1)
         {
             usage(player, "Attribute Commands",
@@ -556,10 +553,6 @@ final class ItemizerXCommand
 
     private void flag(Player player, ItemStack item, String[] args)
     {
-        if (denied(player, "itemizer.flag"))
-        {
-            return;
-        }
         String add = "<aqua>/itemizer flag add <<white>name<aqua>> <red>- <gold>Add a flag";
         String remove = "<aqua>/itemizer flag remove <<white>name<aqua>> <red>- <gold>Remove a flag";
         if (args.length == 1)
@@ -640,10 +633,6 @@ final class ItemizerXCommand
 
     private void enchant(Player player, ItemStack item, String[] args)
     {
-        if (denied(player, "itemizer.enchant"))
-        {
-            return;
-        }
         if (args.length == 1)
         {
             usage(player, "Enchant Commands",
@@ -797,12 +786,34 @@ final class ItemizerXCommand
             return;
         }
 
-        BlockState before = block.getState();
-        Component text = colorize(StringUtils.join(args, " ", 2, args.length));
-        sign.getTargetSide(player).line(line - 1, text);
+        if (sign.isWaxed())
+        {
+            send(player, "<dark_red>That sign is waxed, so its text can't be changed.");
+            return;
+        }
+
+        // A click event on a sign runs its command at permission level 2 for whoever clicks it,
+        // and selectors, scores, and NBT resolve at that level too.
+        String input = StringUtils.join(args, " ", 2, args.length);
+        Component text = player.hasPermission("itemizer.sign.interactive") ? colorize(input) : colorize(input, SAFE_MM);
+        Side side = sign.getInteractableSideFor(player);
+        List<Component> lines = new ArrayList<>(sign.getSide(side).lines());
+        lines.set(line - 1, text);
+
+        // Protection plugins can refuse the edit, and block loggers such as Oasis and CoreProtect record it.
+        SignChangeEvent event = new SignChangeEvent(block, player, lines, side);
+        if (!event.callEvent())
+        {
+            send(player, "<dark_red>You can't edit that sign.");
+            return;
+        }
+        for (int index = 0; index < 4; index++)
+        {
+            sign.getSide(side).line(index, event.line(index));
+        }
         sign.update();
-        plugin.logSignEdit(player, before, block.getState());
-        send(player, "<dark_green>Line <white>'" + line + "<white>'<dark_green> has been changed to <white>'" + MM.serialize(text) + "<white>'");
+        send(player, "<dark_green>Line <white>'" + line + "<white>'<dark_green> has been changed to <white>'"
+                + MM.serialize(event.line(line - 1)) + "<white>'");
     }
 
     private static boolean denied(CommandSender sender, String permission)
@@ -844,6 +855,11 @@ final class ItemizerXCommand
     /** Reads {@code &} color codes and MiniMessage tags alike. */
     private static Component colorize(String input)
     {
+        return colorize(input, MM);
+    }
+
+    private static Component colorize(String input, MiniMessage parser)
+    {
         Matcher matcher = LEGACY_CODE.matcher(input);
         StringBuilder result = new StringBuilder();
         while (matcher.find())
@@ -851,7 +867,7 @@ final class ItemizerXCommand
             matcher.appendReplacement(result, Matcher.quoteReplacement(LEGACY_TAGS.get(matcher.group().toLowerCase(Locale.ROOT))));
         }
         matcher.appendTail(result);
-        return MM.deserialize(result.toString());
+        return parser.deserialize(result.toString());
     }
 
     private static Integer parseInt(CommandSender sender, String input)
@@ -906,7 +922,7 @@ final class ItemizerXCommand
         return flags.map(flag -> flag.name().toLowerCase(Locale.ROOT)).sorted().collect(Collectors.joining(", "));
     }
 
-    private record HelpEntry(String command, String arguments, String description, String permission)
+    private record HelpEntry(String command, String arguments, String description, String... permissions)
     {
     }
 }

@@ -13,14 +13,15 @@ import tokens.
 ## Installing
 
 Put `ItemizerX-<version>.jar` in your server's `plugins` folder and restart. Everything is
-op-only until you grant permissions. Grant `itemizer.*` to give someone every command, or pick
-nodes from [the permission list](docs/commands.md#permissions).
+op-only until you grant permissions. Grant players one of the
+[permission packs](docs/commands.md#permission-packs): `itemizer.pack.cosmetic`,
+`itemizer.pack.gameplay`, or `itemizer.pack.creation`. `itemizer.*` adds the
+[sensitive permissions](docs/commands.md#sensitive-permissions) for trusted staff.
 
-## Block logging
+## Signs, protection, and logging
 
-When [Oasis](https://oasis-protection.com) or CoreProtect is installed, ItemizerX logs the sign
-edits made with `/itemizer sign` to it, so staff can look them up and roll them back. Neither
-plugin is required.
+`/itemizer sign` edits a sign the way a player does, so protection plugins can refuse the edit
+and block loggers such as [Oasis](https://oasis-protection.com) and CoreProtect record it.
 
 ## Commands
 

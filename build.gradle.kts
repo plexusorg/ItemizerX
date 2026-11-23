@@ -1,5 +1,4 @@
 import xyz.jpenilla.runpaper.task.RunServer
-import net.minecrell.pluginyml.paper.PaperPluginDescription
 
 plugins {
     id("java")
@@ -22,27 +21,15 @@ repositories {
         url = uri("https://repo.papermc.io/repository/maven-public/")
     }
 
-    maven {
-        url = uri("https://maven.playpro.com/")
-        content {
-            includeGroup("net.coreprotect")
-        }
-    }
 
-    maven {
-        url = uri("https://telesphorepo.com/maven/oasis/")
-        content {
-            includeGroup("com.oasis")
-        }
-    }
 }
 
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(25))
 }
 
-// Every permission ItemizerX checks. A group node grants the nodes under it, and itemizer.* grants all.
-// itemizer.data.foreign stays out of itemizer.data: it lets a player write other plugins' item data.
+// Every permission ItemizerX checks. Each command checks only its own node; a group node such as
+// itemizer.lore grants the nodes under it. docs/commands.md explains the packs below.
 val permissionGroups = mapOf(
     "itemizer.lore" to listOf("add", "remove", "change", "clear"),
     "itemizer.potion" to listOf("add", "remove", "change", "color", "list"),
@@ -50,13 +37,29 @@ val permissionGroups = mapOf(
     "itemizer.flag" to listOf("add", "remove", "list", "listall"),
     "itemizer.enchant" to listOf("add", "remove", "list", "listall"),
 )
+// Each pack grants the pack before it and the nodes it lists. itemizer.* grants everything, which adds
+// the nodes a player could use to run commands as others, build any item, or forge other plugins' data.
+val permissionPacks = linkedMapOf(
+    "itemizer.pack.cosmetic" to ("Change how items and signs look, and read item details" to listOf(
+        "itemizer.use", "itemizer.name", "itemizer.lore", "itemizer.title", "itemizer.author", "itemizer.head",
+        "itemizer.flag", "itemizer.sign", "itemizer.clearall", "itemizer.component", "itemizer.enchant.list",
+        "itemizer.enchant.listall", "itemizer.attr.list", "itemizer.attr.listall", "itemizer.potion.list")),
+    "itemizer.pack.gameplay" to ("Make items more powerful: enchantments, attributes, effects, properties" to listOf(
+        "itemizer.pack.cosmetic", "itemizer.enchant", "itemizer.attr", "itemizer.potion", "itemizer.property",
+        "itemizer.component.edit", "itemizer.data")),
+    "itemizer.pack.creation" to ("Make, copy, and stack any item" to listOf(
+        "itemizer.pack.gameplay", "itemizer.id", "itemizer.amount", "itemizer.container", "itemizer.preset",
+        "itemizer.gui")),
+)
 val permissionNodes = linkedMapOf(
     "itemizer.use" to "Use /itemizer, undo, and redo",
     "itemizer.name" to "Rename items",
     "itemizer.id" to "Change an item's material",
     "itemizer.amount" to "Change the stack amount",
     "itemizer.property" to "Edit item properties",
-    "itemizer.component" to "Inspect and edit item data components",
+    "itemizer.component" to "Show item data components",
+    "itemizer.component.edit" to "Edit food, consumable, equippable, cooldown, attack range, and tool components, and reset components",
+    "itemizer.component.raw" to "Apply raw components and replace the item with any /give item",
     "itemizer.data" to "Edit persistent data in the itemizerx namespace",
     "itemizer.data.foreign" to "Edit persistent data in other plugins' namespaces",
     "itemizer.container" to "Edit bundle and container contents",
@@ -93,6 +96,7 @@ val permissionNodes = linkedMapOf(
     "itemizer.author" to "Set a book's author",
     "itemizer.head" to "Set the player of a head",
     "itemizer.sign" to "Change the text of a sign",
+    "itemizer.sign.interactive" to "Put click events, selectors, scores, and NBT on signs",
     "itemizer.clearall" to "Clear all of an item's metadata",
 )
 
@@ -105,19 +109,6 @@ paper {
     apiVersion = "1.21.11"
     foliaSupported = true
 
-    serverDependencies {
-        register("CoreProtect") {
-            required = false
-            load = PaperPluginDescription.RelativeLoadOrder.BEFORE
-            joinClasspath = true
-        }
-        register("Oasis") {
-            required = false
-            load = PaperPluginDescription.RelativeLoadOrder.BEFORE
-            joinClasspath = true
-        }
-    }
-
     permissions {
         permissionNodes.forEach { (node, text) ->
             register(node) {
@@ -126,8 +117,14 @@ paper {
             }
         }
         register("itemizer.*") {
-            description = "Grants every ItemizerX permission"
-            children = permissionNodes.keys.toList()
+            description = "Every ItemizerX permission"
+            children = permissionNodes.keys.toList() + permissionPacks.keys
+        }
+        permissionPacks.forEach { (pack, contents) ->
+            register(pack) {
+                description = contents.first
+                children = contents.second
+            }
         }
     }
 }
@@ -166,7 +163,5 @@ tasks {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:$paperApiVersion")
-    compileOnly("net.coreprotect:coreprotect:24.1")
-    compileOnly("com.oasis:oasis-api:3.0-SNAPSHOT")
     implementation("org.bstats:bstats-bukkit:3.2.1")
 }

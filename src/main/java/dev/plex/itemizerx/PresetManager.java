@@ -1,5 +1,16 @@
 package dev.plex.itemizerx;
 
+import io.papermc.paper.connection.PlayerGameConnection;
+import io.papermc.paper.dialog.Dialog;
+import io.papermc.paper.dialog.DialogResponseView;
+import io.papermc.paper.event.player.PlayerCustomClickEvent;
+import io.papermc.paper.registry.data.dialog.ActionButton;
+import io.papermc.paper.registry.data.dialog.DialogBase;
+import io.papermc.paper.registry.data.dialog.action.DialogAction;
+import io.papermc.paper.registry.data.dialog.input.DialogInput;
+import io.papermc.paper.registry.data.dialog.input.TextDialogInput;
+import io.papermc.paper.registry.data.dialog.type.DialogType;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -9,6 +20,8 @@ import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -17,17 +30,19 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-final class PresetManager
+final class PresetManager implements Listener
 {
+    private static final Key IMPORT = Key.key("itemizerx:preset/import");
     private static final Pattern NAME = Pattern.compile("[a-z0-9_-]{1,32}");
     private static final int MAX_PRESETS_PER_PLAYER = 32;
     private static final int MAX_TOTAL_PRESETS = 2048;
-    private static final int MAX_ITEM_LENGTH = 64 * 1024;
+    private static final int MAX_ITEM_LENGTH = 32 * 1024;
     private static final int MAX_EXPORT_ITEM_LENGTH = 12 * 1024;
     private static final int MAX_IMPORT_TOKEN_LENGTH = 20 * 1024;
     private static final long IMPORT_COOLDOWN_MILLIS = 2000;
@@ -36,6 +51,7 @@ final class PresetManager
     private final File file;
     private final Map<UUID, Map<String, Preset>> presets = new LinkedHashMap<>();
     private final Map<UUID, Long> lastImport = new LinkedHashMap<>();
+    private final Map<UUID, String> pendingImports = new LinkedHashMap<>();
     private boolean saveScheduled;
 
     PresetManager(ItemizerX plugin)
@@ -95,12 +111,15 @@ final class PresetManager
                 }
                 case "import" ->
                 {
-                    requireArgs(args, 4, "/itemizer preset import <name> <token>");
-                    checkImportRate(player);
-                    String token = StringUtils.join(args, "", 3, args.length);
-                    if (token.length() > MAX_IMPORT_TOKEN_LENGTH) throw new IllegalArgumentException("Preset token is too large.");
-                    savePreset(player, name(args[2]), Preset.importToken(token));
-                    Messages.success(player, "Preset '" + args[2] + "' imported.");
+                    requireArgs(args, 3, "/itemizer preset import <name> [token]");
+                    String name = name(args[2]);
+                    if (args.length == 3)
+                    {
+                        // The chat box takes 256 characters, so longer tokens go in a dialog.
+                        openImportDialog(player, name);
+                        return true;
+                    }
+                    importToken(player, name, StringUtils.join(args, "", 3, args.length));
                 }
                 default -> help(player);
             }
@@ -118,9 +137,68 @@ final class PresetManager
         return own == null ? java.util.Set.of() : java.util.Set.copyOf(own.keySet());
     }
 
+    @SuppressWarnings("UnstableApiUsage")
+    private void openImportDialog(Player player, String name)
+    {
+        pendingImports.put(player.getUniqueId(), name);
+        player.showDialog(Dialog.create(builder -> builder.empty()
+                .base(DialogBase.builder(Component.text("Import preset '" + name + "'", NamedTextColor.DARK_AQUA))
+                        .canCloseWithEscape(true)
+                        .afterAction(DialogBase.DialogAfterAction.CLOSE)
+                        .inputs(List.of(DialogInput.text("token", Component.text("Token from /itemizer preset export"))
+                                .maxLength(MAX_IMPORT_TOKEN_LENGTH)
+                                .width(300)
+                                .multiline(TextDialogInput.MultilineOptions.create(null, 100))
+                                .build()))
+                        .build())
+                .type(DialogType.confirmation(
+                        ActionButton.builder(Component.text("Import", NamedTextColor.GREEN))
+                                .action(DialogAction.customClick(IMPORT, null)).build(),
+                        ActionButton.builder(Component.text("Cancel", NamedTextColor.RED)).build()))));
+    }
+
+    @EventHandler
+    public void onImportDialog(PlayerCustomClickEvent event)
+    {
+        if (!event.getIdentifier().equals(IMPORT) || !(event.getCommonConnection() instanceof PlayerGameConnection connection))
+        {
+            return;
+        }
+        Player player = connection.getPlayer();
+        String name;
+        synchronized (this)
+        {
+            name = pendingImports.remove(player.getUniqueId());
+        }
+        DialogResponseView response = event.getDialogResponseView();
+        String token = response == null ? null : response.getText("token");
+        if (name == null || token == null)
+        {
+            Messages.error(player, "That import dialog expired; run /itemizer preset import <name> again.");
+            return;
+        }
+        try
+        {
+            importToken(player, name, token.replaceAll("\\s", ""));
+        }
+        catch (IllegalArgumentException ex)
+        {
+            Messages.error(player, ex.getMessage() == null ? "Invalid preset." : ex.getMessage());
+        }
+    }
+
+    private synchronized void importToken(Player player, String name, String token)
+    {
+        checkImportRate(player);
+        if (token.length() > MAX_IMPORT_TOKEN_LENGTH) throw new IllegalArgumentException("Preset token is too large.");
+        savePreset(player, name, Preset.importToken(token));
+        Messages.success(player, "Preset '" + name + "' imported.");
+    }
+
     synchronized void playerQuit(UUID player)
     {
         lastImport.remove(player);
+        pendingImports.remove(player);
     }
 
     synchronized void flush()
@@ -257,7 +335,7 @@ final class PresetManager
                 Messages.command("preset load <name>", "Replace the held item with a preset"),
                 Messages.command("preset delete <name>", "Delete a preset"),
                 Messages.command("preset export <name>", "Get a token to share a preset"),
-                Messages.command("preset import <name> <token>", "Save a shared token as a preset"));
+                Messages.command("preset import <name> [token]", "Save a shared token; leave it out to paste it in a dialog"));
     }
 
     private record Preset(String item, int amount)

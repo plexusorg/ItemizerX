@@ -169,7 +169,12 @@ final class ItemDataCommands
 
     private static void help(Player player)
     {
-        player.sendMessage(Component.text("/itemizer data list|get <key> <type>|set <key> <type> <value>|remove <key>", NamedTextColor.AQUA));
+        Messages.help(player, "Data Commands",
+                Messages.command("data list", "List the item's keys"),
+                Messages.command("data get <key> <type>", "Show a value"),
+                Messages.command("data set <key> <type> <value>", "Set a value"),
+                Messages.command("data remove <key>", "Remove a key"),
+                "<gray>Types: " + String.join(", ", TYPES));
     }
 
 

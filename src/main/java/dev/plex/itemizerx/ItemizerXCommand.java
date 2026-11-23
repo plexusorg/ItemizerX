@@ -115,28 +115,28 @@ final class ItemizerXCommand
             case "redo" -> plugin.history.redo(player);
             case "component", "components", "nbt" ->
             {
-                if (holding(player, item))
+                if (args.length == 1 || holding(player, item))
                 {
                     ItemCommands.component(player, item, args[0].equalsIgnoreCase("nbt") ? new String[]{"component", "nbt"} : args);
                 }
             }
             case "property", "properties" ->
             {
-                if (holding(player, item))
+                if (args.length == 1 || holding(player, item))
                 {
                     ItemCommands.property(player, item, args);
                 }
             }
             case "data", "pdc" ->
             {
-                if (holding(player, item))
+                if (args.length == 1 || holding(player, item))
                 {
                     ItemDataCommands.execute(player, item, args);
                 }
             }
             case "container", "contents" ->
             {
-                if (holding(player, item))
+                if (args.length == 1 || holding(player, item))
                 {
                     ContainerCommands.execute(player, item, args);
                 }
@@ -827,11 +827,7 @@ final class ItemizerXCommand
 
     private static void usage(CommandSender sender, String title, String... lines)
     {
-        send(sender, "<dark_aqua>===============<white>[<light_purple>" + title + "<white>]<dark_aqua>===============");
-        for (String line : lines)
-        {
-            send(sender, line);
-        }
+        Messages.help(sender, title, lines);
     }
 
     private static void unknown(CommandSender sender, String command)

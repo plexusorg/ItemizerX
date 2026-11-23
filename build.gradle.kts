@@ -11,7 +11,7 @@ plugins {
 group = "dev.plex"
 version = "3.0.0"
 
-// Build with -PpaperApiVersion=26.1.1.build.+ to check against the oldest supported API.
+// Build with -PpaperApiVersion=1.21.11-R0.1-SNAPSHOT to check against the oldest supported API.
 val paperApiVersion = providers.gradleProperty("paperApiVersion")
     .getOrElse("26.3.build.+")
 
@@ -102,7 +102,7 @@ paper {
     description = "A new way to edit your items"
     authors = listOf("Focusvity", "Telesphoreo")
     main = "dev.plex.itemizerx.ItemizerX"
-    apiVersion = "26.1"
+    apiVersion = "1.21.11"
     foliaSupported = true
 
     serverDependencies {
@@ -133,7 +133,7 @@ paper {
 }
 
 // Paper never published a downloadable 26.1 server build; 26.1.1 was the first 26.1.x build.
-val testedVersions = listOf("26.1.1", "26.1.2", "26.2", "26.3")
+val testedVersions = listOf("1.21.11", "26.1.1", "26.1.2", "26.2", "26.3")
 tasks {
     testedVersions.forEach {
         register<RunServer>("runServer-$it") {

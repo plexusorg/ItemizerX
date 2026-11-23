@@ -29,7 +29,8 @@ final class CoreProtectLogger implements BlockLogger
     @Override
     public void signEdited(Player player, BlockState before, BlockState after)
     {
-        api.logRemoval(player.getName(), before.getLocation(), before.getType(), before.getBlockData());
-        api.logPlacement(player.getName(), after.getLocation(), after.getType(), after.getBlockData());
+        // The BlockState forms carry the sign's text, so a rollback restores the old lines.
+        api.logRemoval(player.getName(), before);
+        api.logPlacement(player.getName(), after);
     }
 }

@@ -536,13 +536,32 @@ final class ItemCommands
 
     private static void componentHelp(CommandSender sender)
     {
-        sender.sendMessage(Component.text("/itemizer component show | nbt | apply <[components]> | replace <item[components]> | reset", NamedTextColor.AQUA));
-        sender.sendMessage(Component.text("Structured: food | consumable | equippable | cooldown | attack-range | tool", NamedTextColor.AQUA));
+        Messages.help(sender, "Component Commands",
+                Messages.command("component show", "Show the item as /give syntax"),
+                Messages.command("component nbt", "Show the item's data as SNBT"),
+                Messages.command("component apply <[component=value,...]>", "Apply components"),
+                Messages.command("component replace <item[component=value,...]>", "Replace the item"),
+                Messages.command("component reset", "Clear every changed component"),
+                Messages.command("component food <nutrition> <saturation> [always-eat]", "Make the item food"),
+                Messages.command("component consumable <seconds> <animation> [particles] [sound]", "Set how it is consumed"),
+                Messages.command("component equippable <slot> [swappable] [dispensable] [damage-on-hurt]", "Make it equippable"),
+                Messages.command("component cooldown <seconds> [group]", "Set a use cooldown"),
+                Messages.command("component attack-range <min> <max> [creative-min] [creative-max] [margin] [mob-factor]", "Set the attack reach"),
+                Messages.command("component tool <speed> <damage-per-block> [creative-destroy]", "Make it a tool"),
+                "<gray>The last six also take reset or remove.");
     }
 
     private static void propertyHelp(CommandSender sender)
     {
-        sender.sendMessage(Component.text("/itemizer property <" + String.join("|", PROPERTIES) + "> <value|reset>", NamedTextColor.AQUA));
+        Messages.help(sender, "Property Commands",
+                Messages.command("property list", "Show the item's properties"),
+                Messages.command("property <unbreakable|glider|hide-tooltip> <true|false>", "Toggle a property"),
+                Messages.command("property glint <true|false|reset>", "Force or hide the enchantment glint"),
+                Messages.command("property <damage|max-damage> <amount|reset>", "Set durability"),
+                Messages.command("property max-stack <1-99|reset>", "Set the max stack size"),
+                Messages.command("property enchantable <value|reset>", "Set the enchantability"),
+                Messages.command("property rarity <common|uncommon|rare|epic|reset>", "Set the rarity"),
+                Messages.command("property <item-model|tooltip-style> <key|reset>", "Set the model or tooltip style"));
     }
 
     private static boolean noPermission(CommandSender sender)

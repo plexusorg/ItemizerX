@@ -177,7 +177,10 @@ final class ContainerCommands
 
     private static void help(Player player)
     {
-        player.sendMessage(Component.text("/itemizer container list|add [amount]|remove <slot>|clear", NamedTextColor.AQUA));
-        player.sendMessage(Component.text("Add safely copies the off-hand item; it never consumes inventory contents.", NamedTextColor.GRAY));
+        Messages.help(player, "Container Commands",
+                Messages.command("container list", "List the contents by slot, from 0"),
+                Messages.command("container add [amount]", "Copy your off-hand item in; your off hand keeps it"),
+                Messages.command("container remove <slot>", "Empty a slot"),
+                Messages.command("container clear", "Empty the container"));
     }
 }

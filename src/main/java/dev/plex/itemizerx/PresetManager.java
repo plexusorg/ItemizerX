@@ -251,7 +251,13 @@ final class PresetManager
 
     private static void help(Player player)
     {
-        player.sendMessage(Component.text("/itemizer preset save|load|delete|export <name> | import <name> <token> | list", NamedTextColor.AQUA));
+        Messages.help(player, "Preset Commands",
+                Messages.command("preset list", "List your presets"),
+                Messages.command("preset save <name>", "Save the held item"),
+                Messages.command("preset load <name>", "Replace the held item with a preset"),
+                Messages.command("preset delete <name>", "Delete a preset"),
+                Messages.command("preset export <name>", "Get a token to share a preset"),
+                Messages.command("preset import <name> <token>", "Save a shared token as a preset"));
     }
 
     private record Preset(String item, int amount)

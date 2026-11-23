@@ -7,7 +7,7 @@ import tokens.
 
 ## Requirements
 
-- Paper (or a fork) for Minecraft 26.1 or newer
+- Paper (or a fork) for Minecraft 1.21.11 or newer
 - Java 25
 
 ## Installing
@@ -34,4 +34,4 @@ plugin is required.
 ```
 
 The plugin jar is written to `build/libs/ItemizerX-<version>.jar`. To check the code against the
-oldest supported API, build with `"-PpaperApiVersion=26.1.1.build.+"`.
+oldest supported API, build with `"-PpaperApiVersion=1.21.11-R0.1-SNAPSHOT"`.

@@ -56,6 +56,7 @@ final class ItemizerXTab
         return switch (root.toLowerCase(Locale.ROOT))
         {
             case "id" -> Arrays.stream(Material.values()).filter(Material::isItem).map(material -> friendly(material.getKey()));
+            case "help" -> Stream.of("1", "2", "3");
             case "lore" -> Stream.of("add", "remove", "change", "clear");
             case "potion" -> Stream.of("add", "remove", "change", "color", "list");
             case "attr" -> Stream.of("add", "edit", "remove", "list", "listall");

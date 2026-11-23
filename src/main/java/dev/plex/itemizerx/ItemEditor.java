@@ -73,8 +73,7 @@ final class ItemEditor implements Listener
         switch (event.getRawSlot())
         {
             case 10 -> editMeta(held, meta -> meta.setUnbreakable(!meta.isUnbreakable()));
-            case 11 -> editMeta(held, meta -> meta.setEnchantmentGlintOverride(
-                    !Boolean.TRUE.equals(meta.getEnchantmentGlintOverride())));
+            case 11 -> editMeta(held, meta -> meta.setEnchantmentGlintOverride(!ItemCommands.hasGlint(meta)));
             case 12 -> editMeta(held, meta -> meta.setHideTooltip(!meta.isHideTooltip()));
             case 14 -> editMeta(held, meta -> meta.setGlider(!meta.isGlider()));
             case 15 -> held.setAmount(Math.max(1, held.getAmount() - 1));
@@ -136,7 +135,7 @@ final class ItemEditor implements Listener
         ItemMeta meta = held.getItemMeta();
 
         inventory.setItem(10, button(Material.ANVIL, "Unbreakable: " + (meta != null && meta.isUnbreakable())));
-        inventory.setItem(11, button(Material.GLOWSTONE_DUST, "Glint: " + (meta != null && Boolean.TRUE.equals(meta.getEnchantmentGlintOverride()))));
+        inventory.setItem(11, button(Material.GLOWSTONE_DUST, "Glint: " + ItemCommands.hasGlint(meta)));
         inventory.setItem(12, button(Material.PAPER, "Hide tooltip: " + (meta != null && meta.isHideTooltip())));
         inventory.setItem(13, held.clone());
         inventory.setItem(14, button(Material.ELYTRA, "Glider: " + (meta != null && meta.isGlider())));

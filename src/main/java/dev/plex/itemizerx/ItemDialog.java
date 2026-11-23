@@ -66,7 +66,7 @@ final class ItemDialog implements Listener
                 System.currentTimeMillis() + SESSION_LIFETIME.toMillis()));
         ItemMeta meta = held.getItemMeta();
         boolean unbreakable = meta != null && meta.isUnbreakable();
-        boolean glint = meta != null && Boolean.TRUE.equals(meta.getEnchantmentGlintOverride());
+        boolean glint = ItemCommands.hasGlint(meta);
         boolean hideTooltip = meta != null && meta.isHideTooltip();
         boolean glider = meta != null && meta.isGlider();
 
@@ -75,7 +75,7 @@ final class ItemDialog implements Listener
                         .canCloseWithEscape(true)
                         .afterAction(DialogBase.DialogAfterAction.CLOSE)
                         .body(List.of(
-                                DialogBody.item(held.clone()).showDecorations(true).showTooltip(true).width(64).height(64).build(),
+                                DialogBody.item(held.clone()).showDecorations(true).showTooltip(true).build(),
                                 DialogBody.plainMessage(Component.text("Edit the held item and apply the values below.", NamedTextColor.GRAY))))
                         .inputs(List.of(
                                 DialogInput.numberRange("amount", Component.text("Stack amount"), 1, 99)
@@ -135,7 +135,11 @@ final class ItemDialog implements Listener
         if (meta != null)
         {
             meta.setUnbreakable(unbreakable);
-            meta.setEnchantmentGlintOverride(glint);
+            // Only a changed glint becomes an override, so an untouched item keeps the default glint.
+            if (glint != ItemCommands.hasGlint(meta))
+            {
+                meta.setEnchantmentGlintOverride(glint);
+            }
             meta.setHideTooltip(hideTooltip);
             meta.setGlider(glider);
             item.setItemMeta(meta);

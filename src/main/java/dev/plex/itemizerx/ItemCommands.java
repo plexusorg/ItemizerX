@@ -436,6 +436,16 @@ final class ItemCommands
                 + ", tooltip-style=" + (meta.hasTooltipStyle() ? meta.getTooltipStyle() : "default"), NamedTextColor.YELLOW));
     }
 
+    /** Whether the item shows the glint: its override, or otherwise whether it is enchanted. */
+    static boolean hasGlint(ItemMeta meta)
+    {
+        if (meta == null)
+        {
+            return false;
+        }
+        return meta.hasEnchantmentGlintOverride() ? meta.getEnchantmentGlintOverride() : meta.hasEnchants();
+    }
+
     private static Damageable requireDamageable(ItemMeta meta)
     {
         if (meta instanceof Damageable damageable)

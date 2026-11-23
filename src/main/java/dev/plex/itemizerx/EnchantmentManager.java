@@ -6,7 +6,6 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Locale;
 
@@ -32,26 +31,22 @@ final class EnchantmentManager
         try
         {
             level = Integer.parseInt(args[3]);
-            if (level < 1)
+            if (level < 1 || level > 255)
             {
                 throw new NumberFormatException();
             }
         }
         catch (NumberFormatException ex)
         {
-            Messages.error(player, "The enchantment level must be a positive integer.");
+            Messages.error(player, "The enchantment level must be an integer from 1 to 255.");
             return;
         }
 
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null && meta.hasEnchant(enchantment))
-        {
-            Messages.error(player, "This item already has " + enchantment.getKey() + ". Remove it first.");
-            return;
-        }
-
+        int previous = item.getEnchantmentLevel(enchantment);
         item.addUnsafeEnchantment(enchantment, level);
-        Messages.success(player, "Added " + enchantment.getKey() + " level " + level + ".");
+        Messages.success(player, previous == 0
+                ? "Added " + enchantment.getKey() + " level " + level + "."
+                : "Changed " + enchantment.getKey() + " from level " + previous + " to " + level + ".");
     }
 
     void removeEnchantment(Player player, ItemStack item, String[] args)

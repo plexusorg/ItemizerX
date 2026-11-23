@@ -51,6 +51,31 @@ final class ItemizerXCommand
             Map.entry("&m", "<strikethrough>"), Map.entry("&n", "<underlined>"), Map.entry("&o", "<italic>"),
             Map.entry("&r", "<reset>"));
 
+    private static final int HELP_PAGE_SIZE = 8;
+    private static final List<HelpEntry> HELP = List.of(
+            new HelpEntry("name", " <<white>name<aqua>>", "Name your item", "itemizer.name"),
+            new HelpEntry("id", " <<white>id<aqua>>", "Change the item's material", "itemizer.id"),
+            new HelpEntry("amount", " <<white>1-99<aqua>>", "Change the stack amount", "itemizer.amount"),
+            new HelpEntry("undo", "", "Undo your last item edit", "itemizer.use"),
+            new HelpEntry("redo", "", "Redo an undone item edit", "itemizer.use"),
+            new HelpEntry("gui", "", "Open the item dialog", "itemizer.gui"),
+            new HelpEntry("inventory", "", "Open the inventory editor", "itemizer.gui"),
+            new HelpEntry("lore", "", "Lore commands", "itemizer.lore"),
+            new HelpEntry("enchant", "", "Enchantment commands", "itemizer.enchant"),
+            new HelpEntry("attr", "", "Attribute commands", "itemizer.attr"),
+            new HelpEntry("flag", "", "Item flag commands", "itemizer.flag"),
+            new HelpEntry("potion", "", "Potion commands", "itemizer.potion"),
+            new HelpEntry("property", "", "Edit item properties", "itemizer.property"),
+            new HelpEntry("component", "", "Inspect or apply any vanilla item component", "itemizer.component"),
+            new HelpEntry("data", "", "Edit typed persistent custom data", "itemizer.data"),
+            new HelpEntry("container", "", "Edit bundle and container contents", "itemizer.container"),
+            new HelpEntry("preset", "", "Save, load, import, and export item presets", "itemizer.preset"),
+            new HelpEntry("title", " <<white>name<aqua>>", "Set the book's title", "itemizer.title"),
+            new HelpEntry("author", " <<white>name<aqua>>", "Set the book's author", "itemizer.author"),
+            new HelpEntry("head", " <<white>name<aqua>>", "Set the player of the head", "itemizer.head"),
+            new HelpEntry("sign", " <<white>line<aqua>> <<white>text<aqua>>", "Change a line of the sign you look at", "itemizer.sign"),
+            new HelpEntry("clearall", "", "Clear all metadata from your item", "itemizer.clearall"));
+
     private final ItemizerX plugin;
 
     ItemizerXCommand(ItemizerX plugin)
@@ -76,7 +101,7 @@ final class ItemizerXCommand
         ItemStack item = player.getInventory().getItemInMainHand();
         switch (args[0].toLowerCase(Locale.ROOT))
         {
-            case "help" -> help(player);
+            case "help" -> help(player, args);
             case "name" -> name(player, item, args);
             case "id" -> id(player, item, args);
             case "amount" ->
@@ -140,32 +165,33 @@ final class ItemizerXCommand
         }
     }
 
-    private void help(Player player)
+    private void help(Player player, String[] args)
     {
-        send(player, """
-                <dark_aqua>=============<white>[<light_purple>ItemizerX Commands<white>]<dark_aqua>=============
-                <aqua>/itemizer name <<white>name<aqua>> <red>- <gold>Name your item
-                <aqua>/itemizer id <<white>id<aqua>> <red>- <gold>Change the item's material
-                <aqua>/itemizer amount <<white>1-99<aqua>> <red>- <gold>Change the stack amount
-                <aqua>/itemizer undo <red>- <gold>Undo your last item edit
-                <aqua>/itemizer redo <red>- <gold>Redo an undone item edit
-                <aqua>/itemizer property <red>- <gold>Edit item properties
-                <aqua>/itemizer component <red>- <gold>Inspect or apply any vanilla item component
-                <aqua>/itemizer data <red>- <gold>Edit typed persistent custom data
-                <aqua>/itemizer container <red>- <gold>Edit bundle and container contents
-                <aqua>/itemizer preset <red>- <gold>Save, load, import, and export item presets
-                <aqua>/itemizer gui <red>- <gold>Open the item dialog
-                <aqua>/itemizer inventory <red>- <gold>Open the inventory editor
-                <aqua>/itemizer lore <red>- <gold>Lore editing commands
-                <aqua>/itemizer potion <red>- <gold>Potion editing commands
-                <aqua>/itemizer attr <red>- <gold>Attribute editing commands
-                <aqua>/itemizer flag <red>- <gold>Flag editing commands
-                <aqua>/itemizer enchant <red>- <gold>Enchantment editing commands
-                <aqua>/itemizer title <<white>name<aqua>> <red>- <gold>Set the book's title
-                <aqua>/itemizer author <<white>name<aqua>> <red>- <gold>Set the book's author
-                <aqua>/itemizer head <<white>name<aqua>> <red>- <gold>Set the player of the head
-                <aqua>/itemizer sign <<white>line<aqua>> <<white>text<aqua>> <red>- <gold>Change a line of the sign you look at
-                <aqua>/itemizer clearall <red>- <gold>Clear all metadata from your item""");
+        List<HelpEntry> entries = HELP.stream().filter(entry -> player.hasPermission(entry.permission())).toList();
+        int pages = Math.max(1, (entries.size() + HELP_PAGE_SIZE - 1) / HELP_PAGE_SIZE);
+        int page = 1;
+        if (args.length > 1)
+        {
+            Integer requested = parseInt(player, args[1]);
+            if (requested == null)
+            {
+                return;
+            }
+            page = Math.clamp(requested, 1, pages);
+        }
+
+        send(player, "<dark_aqua>=========<white>[<light_purple>ItemizerX Commands <white>" + page + "/" + pages + "]<dark_aqua>=========");
+        entries.stream().skip((long) (page - 1) * HELP_PAGE_SIZE).limit(HELP_PAGE_SIZE)
+                .forEach(entry -> send(player, "<aqua><click:suggest_command:/itemizer " + entry.command() + " >/itemizer "
+                        + entry.command() + entry.arguments() + "</click> <red>- <gold>" + entry.description()));
+        if (pages > 1)
+        {
+            String previous = page > 1
+                    ? "<click:run_command:/itemizer help " + (page - 1) + "><aqua>« Previous</click>" : "<dark_gray>« Previous";
+            String next = page < pages
+                    ? "<click:run_command:/itemizer help " + (page + 1) + "><aqua>Next »</click>" : "<dark_gray>Next »";
+            send(player, previous + " <dark_aqua>| " + next);
+        }
     }
 
     private void name(Player player, ItemStack item, String[] args)
@@ -385,14 +411,10 @@ final class ItemizerXCommand
                     send(player, "<dark_red>The level must be from 1 to 256 and the duration at least 1 tick.");
                     return;
                 }
-                if (meta.hasCustomEffect(type))
-                {
-                    send(player, "<dark_red>This potion already has <white>" + type.getKey());
-                    return;
-                }
-                meta.addCustomEffect(new PotionEffect(type, ticks, level - 1), false);
+                boolean replacing = meta.hasCustomEffect(type);
+                meta.addCustomEffect(new PotionEffect(type, ticks, level - 1), true);
                 item.setItemMeta(meta);
-                send(player, "<white>" + type.getKey() + " <dark_green>has been added to the potion");
+                send(player, "<white>" + type.getKey() + " <dark_green>has been " + (replacing ? "changed on" : "added to") + " the potion");
             }
             case "remove" ->
             {
@@ -886,5 +908,9 @@ final class ItemizerXCommand
     private static String flagNames(java.util.stream.Stream<ItemFlag> flags)
     {
         return flags.map(flag -> flag.name().toLowerCase(Locale.ROOT)).sorted().collect(Collectors.joining(", "));
+    }
+
+    private record HelpEntry(String command, String arguments, String description, String permission)
+    {
     }
 }

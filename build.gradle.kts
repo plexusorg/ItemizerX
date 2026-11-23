@@ -11,9 +11,9 @@ plugins {
 group = "dev.plex"
 version = "3.0.0"
 
-// Build with -PpaperApiVersion=26.1.1.build.29-alpha to check against the oldest supported API.
+// Build with -PpaperApiVersion=26.1.1.build.+ to check against the oldest supported API.
 val paperApiVersion = providers.gradleProperty("paperApiVersion")
-    .getOrElse("26.3.build.258-stable")
+    .getOrElse("26.3.build.+")
 
 repositories {
     mavenCentral()
@@ -41,6 +41,61 @@ java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(25))
 }
 
+// Every permission ItemizerX checks. A group node grants the nodes under it, and itemizer.* grants all.
+// itemizer.data.foreign stays out of itemizer.data: it lets a player write other plugins' item data.
+val permissionGroups = mapOf(
+    "itemizer.lore" to listOf("add", "remove", "change", "clear"),
+    "itemizer.potion" to listOf("add", "remove", "change", "color", "list"),
+    "itemizer.attr" to listOf("add", "edit", "remove", "list", "listall"),
+    "itemizer.flag" to listOf("add", "remove", "list", "listall"),
+    "itemizer.enchant" to listOf("add", "remove", "list", "listall"),
+)
+val permissionNodes = linkedMapOf(
+    "itemizer.use" to "Use /itemizer, undo, and redo",
+    "itemizer.name" to "Rename items",
+    "itemizer.id" to "Change an item's material",
+    "itemizer.amount" to "Change the stack amount",
+    "itemizer.property" to "Edit item properties",
+    "itemizer.component" to "Inspect and edit item data components",
+    "itemizer.data" to "Edit persistent data in the itemizerx namespace",
+    "itemizer.data.foreign" to "Edit persistent data in other plugins' namespaces",
+    "itemizer.container" to "Edit bundle and container contents",
+    "itemizer.preset" to "Save, load, import, and export item presets",
+    "itemizer.gui" to "Open the dialog and inventory editors",
+    "itemizer.lore" to "Every lore command",
+    "itemizer.lore.add" to "Add lore lines",
+    "itemizer.lore.remove" to "Remove lore lines",
+    "itemizer.lore.change" to "Change lore lines",
+    "itemizer.lore.clear" to "Clear lore",
+    "itemizer.potion" to "Every potion command",
+    "itemizer.potion.add" to "Add or change potion effects",
+    "itemizer.potion.remove" to "Remove potion effects",
+    "itemizer.potion.change" to "Change the potion type",
+    "itemizer.potion.color" to "Set the potion color",
+    "itemizer.potion.list" to "List potion effects",
+    "itemizer.attr" to "Every attribute command",
+    "itemizer.attr.add" to "Add attribute modifiers",
+    "itemizer.attr.edit" to "Edit attribute modifiers",
+    "itemizer.attr.remove" to "Remove attribute modifiers",
+    "itemizer.attr.list" to "List an item's attribute modifiers",
+    "itemizer.attr.listall" to "List every attribute",
+    "itemizer.flag" to "Every flag command",
+    "itemizer.flag.add" to "Add item flags",
+    "itemizer.flag.remove" to "Remove item flags",
+    "itemizer.flag.list" to "List an item's flags",
+    "itemizer.flag.listall" to "List every item flag",
+    "itemizer.enchant" to "Every enchantment command",
+    "itemizer.enchant.add" to "Add or change enchantments",
+    "itemizer.enchant.remove" to "Remove enchantments",
+    "itemizer.enchant.list" to "List an item's enchantments",
+    "itemizer.enchant.listall" to "List every enchantment",
+    "itemizer.title" to "Set a book's title",
+    "itemizer.author" to "Set a book's author",
+    "itemizer.head" to "Set the player of a head",
+    "itemizer.sign" to "Change the text of a sign",
+    "itemizer.clearall" to "Clear all of an item's metadata",
+)
+
 paper {
     name = "ItemizerX"
     version = rootProject.version.toString()
@@ -64,29 +119,15 @@ paper {
     }
 
     permissions {
-        register("itemizer.use") {
-            description = "Allows use of ItemizerX"
+        permissionNodes.forEach { (node, text) ->
+            register(node) {
+                description = text
+                children = permissionGroups[node].orEmpty().map { "$node.$it" }
+            }
         }
-        register("itemizer.component") {
-            description = "Allows editing item data components"
-        }
-        register("itemizer.data") {
-            description = "Allows editing ItemizerX persistent item data"
-        }
-        register("itemizer.data.foreign") {
-            description = "Allows editing persistent data owned by other namespaces"
-        }
-        register("itemizer.container") {
-            description = "Allows editing bundle and container contents"
-        }
-        register("itemizer.preset") {
-            description = "Allows saving, importing, exporting, and loading item presets"
-        }
-        register("itemizer.gui") {
-            description = "Allows opening the ItemizerX dialog and inventory editors"
-        }
-        register("itemizer.attr.edit") {
-            description = "Allows editing existing item attribute modifiers"
+        register("itemizer.*") {
+            description = "Grants every ItemizerX permission"
+            children = permissionNodes.keys.toList()
         }
     }
 }

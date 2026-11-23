@@ -17,6 +17,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * Registers each subcommand as a Brigadier literal with one greedy argument, then hands the words
+ * to {@link ItemizerXCommand}. Every edit of the held item made through a command goes into undo
+ * history.
+ */
 final class ItemizerXBrigadierCommand
 {
     private static final Set<String> SUBCOMMANDS = new LinkedHashSet<>(ItemizerXTab.ROOT);
@@ -30,36 +35,32 @@ final class ItemizerXBrigadierCommand
     {
     }
 
-    static LiteralCommandNode<CommandSourceStack> create(ItemizerXCommand dispatcher, ItemizerXTab tab)
+    static LiteralCommandNode<CommandSourceStack> create(ItemizerX plugin, ItemizerXCommand command, ItemizerXTab tab)
     {
         LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal("itemizer")
                 .requires(source -> source.getSender().hasPermission("itemizer.use"))
-                .executes(context -> dispatch(context, dispatcher));
+                .executes(context -> dispatch(context, plugin, command));
 
         for (String subcommand : SUBCOMMANDS)
         {
             root.then(Commands.literal(subcommand)
-                    .executes(context -> dispatch(context, dispatcher))
+                    .executes(context -> dispatch(context, plugin, command))
                     .then(Commands.argument("arguments", StringArgumentType.greedyString())
                             .suggests((context, builder) -> suggest(context, builder, tab))
-                            .executes(context -> dispatch(context, dispatcher))));
+                            .executes(context -> dispatch(context, plugin, command))));
         }
         return root.build();
     }
 
-    private static int dispatch(CommandContext<CommandSourceStack> context, ItemizerXCommand dispatcher)
+    private static int dispatch(CommandContext<CommandSourceStack> context, ItemizerX plugin, ItemizerXCommand command)
     {
         String[] arguments = arguments(context.getInput(), false);
         Player player = context.getSource().getSender() instanceof Player value ? value : null;
         ItemStack before = player == null ? null : player.getInventory().getItemInMainHand().clone();
-        dispatcher.execute(context.getSource().getSender(), arguments);
+        command.execute(context.getSource().getSender(), arguments);
         if (player != null && shouldRecord(arguments))
         {
-            ItemizerX plugin = ItemizerX.plugin;
-            if (plugin != null)
-            {
-                plugin.history.record(player, before, player.getInventory().getItemInMainHand().clone());
-            }
+            plugin.history.record(player, before, player.getInventory().getItemInMainHand().clone());
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -75,8 +76,7 @@ final class ItemizerXBrigadierCommand
                                                            SuggestionsBuilder builder, ItemizerXTab tab)
     {
         String input = context.getInput();
-        int lastSpace = input.lastIndexOf(' ');
-        SuggestionsBuilder currentWord = builder.createOffset(lastSpace + 1);
+        SuggestionsBuilder currentWord = builder.createOffset(input.lastIndexOf(' ') + 1);
         for (String suggestion : tab.complete(context.getSource().getSender(), arguments(input, true)))
         {
             currentWord.suggest(suggestion);

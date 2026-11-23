@@ -49,7 +49,7 @@ final class PresetManager
     {
         if (!player.hasPermission("itemizer.preset"))
         {
-            error(player, "You don't have permission to use item presets.");
+            Messages.error(player, "You don't have permission to use item presets.");
             return true;
         }
         if (args.length < 2)
@@ -73,7 +73,7 @@ final class PresetManager
                     requireArgs(args, 3, "/itemizer preset load <name>");
                     Preset preset = get(player, name(args[2]));
                     player.getInventory().setItemInMainHand(preset.create());
-                    success(player, "Preset '" + args[2] + "' loaded.");
+                    Messages.success(player, "Preset '" + args[2] + "' loaded.");
                 }
                 case "delete", "remove" ->
                 {
@@ -82,7 +82,7 @@ final class PresetManager
                     Map<String, Preset> own = presets.get(player.getUniqueId());
                     if (own == null || own.remove(name) == null) throw new IllegalArgumentException("Unknown preset '" + name + "'.");
                     scheduleSave();
-                    success(player, "Preset '" + name + "' deleted.");
+                    Messages.success(player, "Preset '" + name + "' deleted.");
                 }
                 case "export" ->
                 {
@@ -100,14 +100,14 @@ final class PresetManager
                     String token = StringUtils.join(args, "", 3, args.length);
                     if (token.length() > MAX_IMPORT_TOKEN_LENGTH) throw new IllegalArgumentException("Preset token is too large.");
                     savePreset(player, name(args[2]), Preset.importToken(token));
-                    success(player, "Preset '" + args[2] + "' imported.");
+                    Messages.success(player, "Preset '" + args[2] + "' imported.");
                 }
                 default -> help(player);
             }
         }
         catch (IllegalArgumentException ex)
         {
-            error(player, ex.getMessage() == null ? "Invalid preset." : ex.getMessage());
+            Messages.error(player, ex.getMessage() == null ? "Invalid preset." : ex.getMessage());
         }
         return true;
     }
@@ -190,7 +190,7 @@ final class PresetManager
         Preset preset = new Preset(item, stack.getAmount());
         preset.validate();
         savePreset(player, name, preset);
-        success(player, "Preset '" + name + "' saved.");
+        Messages.success(player, "Preset '" + name + "' saved.");
     }
 
     private void savePreset(Player player, String name, Preset preset)
@@ -253,9 +253,6 @@ final class PresetManager
     {
         player.sendMessage(Component.text("/itemizer preset save|load|delete|export <name> | import <name> <token> | list", NamedTextColor.AQUA));
     }
-
-    private static void success(Player player, String message) { player.sendMessage(Component.text(message, NamedTextColor.DARK_GREEN)); }
-    private static void error(Player player, String message) { player.sendMessage(Component.text(message, NamedTextColor.DARK_RED)); }
 
     private record Preset(String item, int amount)
     {

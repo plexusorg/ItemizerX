@@ -44,7 +44,7 @@ final class ItemCommands
         }
         if (args.length < 2)
         {
-            error(player, "/itemizer amount <1-99>");
+            Messages.error(player, "/itemizer amount <1-99>");
             return true;
         }
         try
@@ -55,11 +55,11 @@ final class ItemCommands
                 throw new NumberFormatException();
             }
             item.setAmount(amount);
-            success(player, "Item amount set to " + amount + ".");
+            Messages.success(player, "Item amount set to " + amount + ".");
         }
         catch (NumberFormatException ex)
         {
-            error(player, "Amount must be an integer from 1 to 99.");
+            Messages.error(player, "Amount must be an integer from 1 to 99.");
         }
         return true;
     }
@@ -93,13 +93,13 @@ final class ItemCommands
             {
                 if (args.length < 3)
                 {
-                    error(player, "/itemizer component apply <[component=value,...]>");
+                    Messages.error(player, "/itemizer component apply <[component=value,...]>");
                     return true;
                 }
                 String components = StringUtils.join(args, " ", 2, args.length);
                 if (!components.startsWith("["))
                 {
-                    error(player, "A component patch must begin with '['.");
+                    Messages.error(player, "A component patch must begin with '['.");
                     return true;
                 }
                 replaceFromString(player, item, item.getType().getKey() + components);
@@ -108,7 +108,7 @@ final class ItemCommands
             {
                 if (args.length < 3)
                 {
-                    error(player, "/itemizer component replace <minecraft:item[components]>");
+                    Messages.error(player, "/itemizer component replace <minecraft:item[components]>");
                     return true;
                 }
                 replaceFromString(player, item, StringUtils.join(args, " ", 2, args.length));
@@ -116,7 +116,7 @@ final class ItemCommands
             case "reset", "clear" ->
             {
                 item.setItemMeta(null);
-                success(player, "All custom item components were cleared.");
+                Messages.success(player, "All custom item components were cleared.");
             }
             case "food" -> editFood(player, item, args);
             case "consumable" -> editConsumable(player, item, args);
@@ -129,7 +129,7 @@ final class ItemCommands
         }
         catch (IllegalArgumentException ex)
         {
-            error(player, ex.getMessage() == null ? "Invalid component value." : ex.getMessage());
+            Messages.error(player, ex.getMessage() == null ? "Invalid component value." : ex.getMessage());
         }
         return true;
     }
@@ -149,7 +149,7 @@ final class ItemCommands
         ItemMeta meta = item.getItemMeta();
         if (meta == null)
         {
-            error(player, "This item cannot hold metadata.");
+            Messages.error(player, "This item cannot hold metadata.");
             return true;
         }
 
@@ -161,7 +161,7 @@ final class ItemCommands
         }
         if (args.length < 3)
         {
-            error(player, "/itemizer property <property> <value|reset>");
+            Messages.error(player, "/itemizer property <property> <value|reset>");
             return true;
         }
 
@@ -202,12 +202,12 @@ final class ItemCommands
         }
         catch (IllegalArgumentException ex)
         {
-            error(player, ex.getMessage() == null ? "Invalid value '" + value + "'." : ex.getMessage());
+            Messages.error(player, ex.getMessage() == null ? "Invalid value '" + value + "'." : ex.getMessage());
             return true;
         }
 
         item.setItemMeta(meta);
-        success(player, "Property '" + property + "' updated.");
+        Messages.success(player, "Property '" + property + "' updated.");
         return true;
     }
 
@@ -215,7 +215,7 @@ final class ItemCommands
     {
         if (input.length() > MAX_COMPONENT_INPUT)
         {
-            error(player, "Item component input is limited to " + MAX_COMPONENT_INPUT + " characters.");
+            Messages.error(player, "Item component input is limited to " + MAX_COMPONENT_INPUT + " characters.");
             return;
         }
         try
@@ -223,11 +223,11 @@ final class ItemCommands
             ItemStack replacement = Bukkit.getItemFactory().createItemStack(input);
             replacement.setAmount(oldItem.getAmount());
             player.getInventory().setItemInMainHand(replacement);
-            success(player, "Item components updated.");
+            Messages.success(player, "Item components updated.");
         }
         catch (IllegalArgumentException ex)
         {
-            error(player, "Minecraft rejected that item syntax: " + ex.getMessage());
+            Messages.error(player, "Minecraft rejected that item syntax: " + ex.getMessage());
         }
     }
 
@@ -235,7 +235,7 @@ final class ItemCommands
     {
         if (value.length() > MAX_COMPONENT_OUTPUT)
         {
-            error(player, "This item is too large to display safely in chat.");
+            Messages.error(player, "This item is too large to display safely in chat.");
             return;
         }
         player.sendMessage(Component.text(value, NamedTextColor.YELLOW));
@@ -256,7 +256,7 @@ final class ItemCommands
         }
         if (args.length < 4)
         {
-            error(player, "/itemizer component food <nutrition> <saturation> [always-eat]");
+            Messages.error(player, "/itemizer component food <nutrition> <saturation> [always-eat]");
             return;
         }
         int nutrition = parseRange(args[2], 0, 100);
@@ -269,7 +269,7 @@ final class ItemCommands
             builder.canAlwaysEat(parseBoolean(args[4]));
         }
         item.setData(DataComponentTypes.FOOD, builder);
-        success(player, "Food properties updated.");
+        Messages.success(player, "Food properties updated.");
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -281,7 +281,7 @@ final class ItemCommands
         }
         if (args.length < 4)
         {
-            error(player, "/itemizer component consumable <seconds> <animation> [particles] [sound]");
+            Messages.error(player, "/itemizer component consumable <seconds> <animation> [particles] [sound]");
             return;
         }
         float seconds = parseFloat(args[2], 0, 3600, "Consume time");
@@ -298,7 +298,7 @@ final class ItemCommands
             builder.sound(Key.key(normalizeKey(args[5])));
         }
         item.setData(DataComponentTypes.CONSUMABLE, builder);
-        success(player, "Consumable behavior updated.");
+        Messages.success(player, "Consumable behavior updated.");
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -310,7 +310,7 @@ final class ItemCommands
         }
         if (args.length < 3)
         {
-            error(player, "/itemizer component equippable <slot> [swappable] [dispensable] [damage-on-hurt]");
+            Messages.error(player, "/itemizer component equippable <slot> [swappable] [dispensable] [damage-on-hurt]");
             return;
         }
         EquipmentSlot slot = parseEquipmentSlot(args[2]);
@@ -328,7 +328,7 @@ final class ItemCommands
             builder.damageOnHurt(parseBoolean(args[5]));
         }
         item.setData(DataComponentTypes.EQUIPPABLE, builder);
-        success(player, "Equippable behavior updated.");
+        Messages.success(player, "Equippable behavior updated.");
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -340,7 +340,7 @@ final class ItemCommands
         }
         if (args.length < 3)
         {
-            error(player, "/itemizer component cooldown <seconds> [group]");
+            Messages.error(player, "/itemizer component cooldown <seconds> [group]");
             return;
         }
         UseCooldown.Builder builder = UseCooldown.useCooldown(parseFloat(args[2], 0, 3600, "Cooldown"));
@@ -349,7 +349,7 @@ final class ItemCommands
             builder.cooldownGroup(Key.key(normalizeKey(args[3])));
         }
         item.setData(DataComponentTypes.USE_COOLDOWN, builder);
-        success(player, "Use cooldown updated.");
+        Messages.success(player, "Use cooldown updated.");
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -361,7 +361,7 @@ final class ItemCommands
         }
         if (args.length < 4)
         {
-            error(player, "/itemizer component attack-range <min> <max> [creative-min] [creative-max] [margin] [mob-factor]");
+            Messages.error(player, "/itemizer component attack-range <min> <max> [creative-min] [creative-max] [margin] [mob-factor]");
             return;
         }
         float minimum = parseFloat(args[2], 0, 128, "Minimum range");
@@ -372,7 +372,7 @@ final class ItemCommands
         if (args.length > 6) builder.hitboxMargin(parseFloat(args[6], 0, 16, "Hitbox margin"));
         if (args.length > 7) builder.mobFactor(parseFloat(args[7], 0, 16, "Mob factor"));
         item.setData(DataComponentTypes.ATTACK_RANGE, builder);
-        success(player, "Attack range updated.");
+        Messages.success(player, "Attack range updated.");
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -384,7 +384,7 @@ final class ItemCommands
         }
         if (args.length < 4)
         {
-            error(player, "/itemizer component tool <default-speed> <damage-per-block> [creative-destroy]");
+            Messages.error(player, "/itemizer component tool <default-speed> <damage-per-block> [creative-destroy]");
             return;
         }
         Tool.Builder builder = Tool.tool()
@@ -395,7 +395,7 @@ final class ItemCommands
             builder.canDestroyBlocksInCreative(parseBoolean(args[4]));
         }
         item.setData(DataComponentTypes.TOOL, builder);
-        success(player, "Tool behavior updated.");
+        Messages.success(player, "Tool behavior updated.");
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -414,7 +414,7 @@ final class ItemCommands
         {
             item.unsetData(type);
         }
-        success(player, name + " component " + args[2].toLowerCase(Locale.ROOT) + ".");
+        Messages.success(player, name + " component " + args[2].toLowerCase(Locale.ROOT) + ".");
         return true;
     }
 
@@ -537,18 +537,10 @@ final class ItemCommands
 
     private static boolean noPermission(CommandSender sender)
     {
-        error(sender, "You don't have permission to use this command.");
+        Messages.error(sender, "You don't have permission to use this command.");
         return true;
     }
 
-    private static void success(CommandSender sender, String message)
-    {
-        sender.sendMessage(Component.text(message, NamedTextColor.DARK_GREEN));
-    }
 
-    private static void error(CommandSender sender, String message)
-    {
-        sender.sendMessage(Component.text(message, NamedTextColor.DARK_RED));
-    }
 }
 

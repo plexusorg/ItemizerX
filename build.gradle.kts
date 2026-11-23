@@ -11,29 +11,30 @@ plugins {
 group = "dev.plex"
 version = "3.0.0"
 
+// Build with -PpaperApiVersion=26.1.1.build.29-alpha to check against the oldest supported API.
 val paperApiVersion = providers.gradleProperty("paperApiVersion")
-    .getOrElse("26.2.build.112-stable")
+    .getOrElse("26.3.build.258-stable")
 
-allprojects {
-    repositories {
-        mavenCentral()
+repositories {
+    mavenCentral()
 
-        maven {
-            url = uri("https://repo.papermc.io/repository/maven-public/")
-        }
+    maven {
+        url = uri("https://repo.papermc.io/repository/maven-public/")
+    }
 
-        maven {
-            url = uri("https://maven.playpro.com/")
-            content {
-                includeGroup("net.coreprotect")
-            }
+    maven {
+        url = uri("https://maven.playpro.com/")
+        content {
+            includeGroup("net.coreprotect")
         }
     }
-}
 
-subprojects {
-    apply(plugin = "java")
-    apply(plugin = "com.gradleup.shadow")
+    maven {
+        url = uri("https://telesphorepo.com/maven/oasis/")
+        content {
+            includeGroup("com.oasis")
+        }
+    }
 }
 
 java {
@@ -53,6 +54,12 @@ paper {
         register("CoreProtect") {
             required = false
             load = PaperPluginDescription.RelativeLoadOrder.BEFORE
+            joinClasspath = true
+        }
+        register("Oasis") {
+            required = false
+            load = PaperPluginDescription.RelativeLoadOrder.BEFORE
+            joinClasspath = true
         }
     }
 
@@ -76,7 +83,7 @@ paper {
             description = "Allows saving, importing, exporting, and loading item presets"
         }
         register("itemizer.gui") {
-            description = "Allows opening the ItemizerX inventory editor"
+            description = "Allows opening the ItemizerX dialog and inventory editors"
         }
         register("itemizer.attr.edit") {
             description = "Allows editing existing item attribute modifiers"
@@ -84,14 +91,13 @@ paper {
     }
 }
 
-// Adapted from PlotSquared
 // Paper never published a downloadable 26.1 server build; 26.1.1 was the first 26.1.x build.
-val supportedVersions = listOf("26.1.1", "26.1.2", "26.2")
+val testedVersions = listOf("26.1.1", "26.1.2", "26.2", "26.3")
 tasks {
-    supportedVersions.forEach {
+    testedVersions.forEach {
         register<RunServer>("runServer-$it") {
             minecraftVersion(it)
-            pluginJars(layout.buildDirectory.file("libs/ItemizerX-${rootProject.version}.jar"))
+            pluginJars(shadowJar.flatMap { jar -> jar.archiveFile })
             jvmArgs("-DPaper.IgnoreJavaVersion=true", "-Dcom.mojang.eula.agree=true")
             group = "run paper"
             runDirectory.set(file("run-$it"))
@@ -99,7 +105,7 @@ tasks {
     }
 
     assemble {
-        dependsOn("shadowJar")
+        dependsOn(shadowJar)
     }
 
     compileJava {
@@ -119,8 +125,7 @@ tasks {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:$paperApiVersion")
-    compileOnly("net.coreprotect:coreprotect:24.0")
-    implementation("org.bstats:bstats-base:3.2.1")
+    compileOnly("net.coreprotect:coreprotect:24.1")
+    compileOnly("com.oasis:oasis-api:3.0-SNAPSHOT")
     implementation("org.bstats:bstats-bukkit:3.2.1")
-    implementation(project(path = ":shared", configuration = "shadow"))
 }

@@ -25,7 +25,7 @@ final class ContainerCommands
     {
         if (!player.hasPermission("itemizer.container"))
         {
-            error(player, "You don't have permission to edit item containers.");
+            Messages.error(player, "You don't have permission to edit item containers.");
             return true;
         }
         if (args.length < 2)
@@ -60,27 +60,27 @@ final class ContainerCommands
                     addition.setAmount(amount);
                 }
                 add(item, addition);
-                success(player, "Copied " + addition.getAmount() + " " + addition.getType().getKey() + " into the container.");
+                Messages.success(player, "Copied " + addition.getAmount() + " " + addition.getType().getKey() + " into the container.");
                 return true;
             }
             if (action.equals("remove"))
             {
                 if (args.length < 3) throw new IllegalArgumentException("/itemizer container remove <slot>");
                 remove(item, Integer.parseInt(args[2]));
-                success(player, "Container slot cleared.");
+                Messages.success(player, "Container slot cleared.");
                 return true;
             }
             if (action.equals("clear"))
             {
                 clear(item);
-                success(player, "Container contents cleared.");
+                Messages.success(player, "Container contents cleared.");
                 return true;
             }
             help(player);
         }
         catch (IllegalArgumentException | IllegalStateException ex)
         {
-            error(player, ex.getMessage() == null ? "Invalid container edit." : ex.getMessage());
+            Messages.error(player, ex.getMessage() == null ? "Invalid container edit." : ex.getMessage());
         }
         return true;
     }
@@ -180,7 +180,4 @@ final class ContainerCommands
         player.sendMessage(Component.text("/itemizer container list|add [amount]|remove <slot>|clear", NamedTextColor.AQUA));
         player.sendMessage(Component.text("Add safely copies the off-hand item; it never consumes inventory contents.", NamedTextColor.GRAY));
     }
-
-    private static void success(Player player, String message) { player.sendMessage(Component.text(message, NamedTextColor.DARK_GREEN)); }
-    private static void error(Player player, String message) { player.sendMessage(Component.text(message, NamedTextColor.DARK_RED)); }
 }

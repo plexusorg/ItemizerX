@@ -16,25 +16,23 @@ import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
 
-/** Bukkit API implementation; no CraftBukkit or Minecraft internals are required. */
-public final class AttributeManager implements IAttributeManager
+final class AttributeManager
 {
-    public static final String[] OPERATIONS = {"add_number", "add_scalar", "multiply_scalar_1"};
-    public static final String[] SLOT_GROUPS = {"any", "mainhand", "offhand", "hand", "feet", "legs", "chest", "head", "armor", "body", "saddle"};
+    static final String[] OPERATIONS = {"add_number", "add_scalar", "multiply_scalar_1"};
+    static final String[] SLOT_GROUPS = {"any", "mainhand", "offhand", "hand", "feet", "legs", "chest", "head", "armor", "body", "saddle"};
 
-    @Override
-    public void addAttr(Player player, String[] args)
+    void addAttr(Player player, String[] args)
     {
         if (args.length < 4)
         {
-            error(player, "/itemizer attr add <attribute> <amount> [operation] [slot-group] [modifier-key]");
+            Messages.error(player, "/itemizer attr add <attribute> <amount> [operation] [slot-group] [modifier-key]");
             return;
         }
 
         Attribute attribute = Attributes.get(args[2]);
         if (attribute == null)
         {
-            error(player, "Unknown attribute '" + args[2] + "'. Use /itemizer attr listall.");
+            Messages.error(player, "Unknown attribute '" + args[2] + "'. Use /itemizer attr listall.");
             return;
         }
 
@@ -49,7 +47,7 @@ public final class AttributeManager implements IAttributeManager
         }
         catch (NumberFormatException ex)
         {
-            error(player, "'" + args[3] + "' is not a finite number.");
+            Messages.error(player, "'" + args[3] + "' is not a finite number.");
             return;
         }
 
@@ -82,7 +80,7 @@ public final class AttributeManager implements IAttributeManager
             modifierKey = parseKey(args[cursor]);
             if (modifierKey == null)
             {
-                error(player, "Invalid modifier key. Use namespace:path or a simple name.");
+                Messages.error(player, "Invalid modifier key. Use namespace:path or a simple name.");
                 return;
             }
         }
@@ -95,14 +93,14 @@ public final class AttributeManager implements IAttributeManager
         ItemMeta meta = item.getItemMeta();
         if (meta == null)
         {
-            error(player, "This item cannot hold metadata.");
+            Messages.error(player, "This item cannot hold metadata.");
             return;
         }
 
         Collection<AttributeModifier> existing = meta.getAttributeModifiers(attribute);
         if (existing != null && existing.stream().anyMatch(modifier -> modifier.getKey().equals(modifierKey)))
         {
-            error(player, "Modifier '" + modifierKey + "' already exists on " + attribute.getKey() + ".");
+            Messages.error(player, "Modifier '" + modifierKey + "' already exists on " + attribute.getKey() + ".");
             return;
         }
 
@@ -113,19 +111,18 @@ public final class AttributeManager implements IAttributeManager
                 + operation.name().toLowerCase(Locale.ROOT) + ", " + slot + ").", NamedTextColor.DARK_GREEN));
     }
 
-    @Override
-    public void editAttr(Player player, String[] args)
+    void editAttr(Player player, String[] args)
     {
         if (args.length < 3)
         {
-            error(player, "/itemizer attr edit <attribute> <amount> [operation] [slot-group] [modifier-key]");
+            Messages.error(player, "/itemizer attr edit <attribute> <amount> [operation] [slot-group] [modifier-key]");
             return;
         }
 
         Attribute attribute = Attributes.get(args[2]);
         if (attribute == null)
         {
-            error(player, "Unknown attribute '" + args[2] + "'. Use /itemizer attr listall.");
+            Messages.error(player, "Unknown attribute '" + args[2] + "'. Use /itemizer attr listall.");
             return;
         }
 
@@ -134,7 +131,7 @@ public final class AttributeManager implements IAttributeManager
         Collection<AttributeModifier> modifiers = meta == null ? null : meta.getAttributeModifiers(attribute);
         if (modifiers == null || modifiers.isEmpty())
         {
-            error(player, "This item has no modifier for " + attribute.getKey() + ".");
+            Messages.error(player, "This item has no modifier for " + attribute.getKey() + ".");
             return;
         }
         if (args.length == 3)
@@ -143,7 +140,7 @@ public final class AttributeManager implements IAttributeManager
             modifiers.forEach(modifier -> player.sendMessage(Component.text("- " + modifier.getKey() + " = "
                     + modifier.getAmount() + " (" + modifier.getOperation().name().toLowerCase(Locale.ROOT)
                     + ", " + modifier.getSlotGroup() + ")", NamedTextColor.YELLOW)));
-            error(player, "/itemizer attr edit " + args[2] + " <amount> [operation] [slot-group] [modifier-key]");
+            Messages.error(player, "/itemizer attr edit " + args[2] + " <amount> [operation] [slot-group] [modifier-key]");
             return;
         }
 
@@ -158,7 +155,7 @@ public final class AttributeManager implements IAttributeManager
         }
         catch (NumberFormatException ex)
         {
-            error(player, "'" + args[3] + "' is not a finite number.");
+            Messages.error(player, "'" + args[3] + "' is not a finite number.");
             return;
         }
 
@@ -185,7 +182,7 @@ public final class AttributeManager implements IAttributeManager
         NamespacedKey requestedKey = args.length > cursor ? parseKey(args[cursor]) : null;
         if (args.length > cursor && requestedKey == null)
         {
-            error(player, "Invalid modifier key. Use namespace:path or a simple name.");
+            Messages.error(player, "Invalid modifier key. Use namespace:path or a simple name.");
             return;
         }
 
@@ -196,7 +193,7 @@ public final class AttributeManager implements IAttributeManager
                     .findFirst().orElse(null);
             if (original == null)
             {
-                error(player, "No modifier named '" + requestedKey + "' exists for " + attribute.getKey() + ".");
+                Messages.error(player, "No modifier named '" + requestedKey + "' exists for " + attribute.getKey() + ".");
                 return;
             }
         }
@@ -206,7 +203,7 @@ public final class AttributeManager implements IAttributeManager
         }
         else
         {
-            error(player, "This attribute has multiple modifiers; add the modifier key to select one.");
+            Messages.error(player, "This attribute has multiple modifiers; add the modifier key to select one.");
             return;
         }
 
@@ -220,19 +217,18 @@ public final class AttributeManager implements IAttributeManager
                 NamedTextColor.DARK_GREEN));
     }
 
-    @Override
-    public void removeAttr(Player player, String[] args)
+    void removeAttr(Player player, String[] args)
     {
         if (args.length < 3)
         {
-            error(player, "/itemizer attr remove <attribute> [modifier-key]");
+            Messages.error(player, "/itemizer attr remove <attribute> [modifier-key]");
             return;
         }
 
         Attribute attribute = Attributes.get(args[2]);
         if (attribute == null)
         {
-            error(player, "Unknown attribute '" + args[2] + "'.");
+            Messages.error(player, "Unknown attribute '" + args[2] + "'.");
             return;
         }
 
@@ -260,22 +256,21 @@ public final class AttributeManager implements IAttributeManager
 
         if (!removed)
         {
-            error(player, "No matching modifier exists for " + attribute.getKey() + ".");
+            Messages.error(player, "No matching modifier exists for " + attribute.getKey() + ".");
             return;
         }
 
         item.setItemMeta(meta);
-        player.sendMessage(Component.text("Attribute modifier removed.", NamedTextColor.DARK_GREEN));
+        Messages.success(player, "Attribute modifier removed.");
     }
 
-    @Override
-    public void listAttr(Player player)
+    void listAttr(Player player)
     {
         ItemMeta meta = player.getInventory().getItemInMainHand().getItemMeta();
         Multimap<Attribute, AttributeModifier> modifiers = meta == null ? null : meta.getAttributeModifiers();
         if (modifiers == null || modifiers.isEmpty())
         {
-            player.sendMessage(Component.text("This item has no custom attribute modifiers.", NamedTextColor.YELLOW));
+            Messages.info(player, "This item has no custom attribute modifiers.");
             return;
         }
 
@@ -289,7 +284,7 @@ public final class AttributeManager implements IAttributeManager
         }
     }
 
-    public static Operation parseOperation(String input)
+    private static Operation parseOperation(String input)
     {
         return switch (input.toLowerCase(Locale.ROOT))
         {
@@ -325,8 +320,4 @@ public final class AttributeManager implements IAttributeManager
         return NamespacedKey.fromString(normalized.contains(":") ? normalized : "itemizerx:" + normalized);
     }
 
-    private static void error(Player player, String message)
-    {
-        player.sendMessage(Component.text(message, NamedTextColor.DARK_RED));
-    }
 }

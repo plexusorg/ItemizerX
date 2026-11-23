@@ -26,7 +26,7 @@ final class ItemDataCommands
     {
         if (!player.hasPermission("itemizer.data"))
         {
-            error(player, "You don't have permission to edit custom item data.");
+            Messages.error(player, "You don't have permission to edit custom item data.");
             return true;
         }
         if (args.length < 2)
@@ -44,7 +44,7 @@ final class ItemDataCommands
                 {
                     if (args.length < 4)
                     {
-                        error(player, "/itemizer data get <key> <type>");
+                        Messages.error(player, "/itemizer data get <key> <type>");
                         return true;
                     }
                     NamespacedKey key = key(player, args[2]);
@@ -55,7 +55,7 @@ final class ItemDataCommands
                 {
                     if (args.length < 5)
                     {
-                        error(player, "/itemizer data set <key> <type> <value>");
+                        Messages.error(player, "/itemizer data set <key> <type> <value>");
                         return true;
                     }
                     NamespacedKey key = key(player, args[2]);
@@ -65,25 +65,25 @@ final class ItemDataCommands
                         throw new IllegalArgumentException("Custom data values are limited to " + MAX_VALUE_LENGTH + " characters.");
                     }
                     item.editPersistentDataContainer(container -> set(container, key, args[3], value));
-                    success(player, "Custom data '" + key + "' updated.");
+                    Messages.success(player, "Custom data '" + key + "' updated.");
                 }
                 case "remove" ->
                 {
                     if (args.length < 3)
                     {
-                        error(player, "/itemizer data remove <key>");
+                        Messages.error(player, "/itemizer data remove <key>");
                         return true;
                     }
                     NamespacedKey key = key(player, args[2]);
                     item.editPersistentDataContainer(container -> container.remove(key));
-                    success(player, "Custom data '" + key + "' removed.");
+                    Messages.success(player, "Custom data '" + key + "' removed.");
                 }
                 default -> help(player);
             }
         }
         catch (IllegalArgumentException ex)
         {
-            error(player, ex.getMessage() == null ? "Invalid custom data value." : ex.getMessage());
+            Messages.error(player, ex.getMessage() == null ? "Invalid custom data value." : ex.getMessage());
         }
         return true;
     }
@@ -172,13 +172,5 @@ final class ItemDataCommands
         player.sendMessage(Component.text("/itemizer data list|get <key> <type>|set <key> <type> <value>|remove <key>", NamedTextColor.AQUA));
     }
 
-    private static void success(Player player, String message)
-    {
-        player.sendMessage(Component.text(message, NamedTextColor.DARK_GREEN));
-    }
 
-    private static void error(Player player, String message)
-    {
-        player.sendMessage(Component.text(message, NamedTextColor.DARK_RED));
-    }
 }

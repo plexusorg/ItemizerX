@@ -2,18 +2,17 @@ package dev.plex.itemizerx;
 
 import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.apache.commons.lang3.StringUtils;
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
+import org.bukkit.Keyed;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -30,1043 +29,862 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
-public class ItemizerXCommand
+final class ItemizerXCommand
 {
-    final List<Material> POTIONS = Arrays.asList(Material.POTION, Material.LINGERING_POTION, Material.SPLASH_POTION);
-    final Map<String, String> COLOR_TRANSLATION = new HashMap<>(){{
-        put("&a", "<green>");
-        put("&b", "<aqua>");
-        put("&c", "<red>");
-        put("&d", "<light_purple>");
-        put("&e", "<yellow>");
-        put("&f", "<white>");
-        put("&k", "<obfuscated>");
-        put("&l", "<bold>");
-        put("&m", "<strikethrough>");
-        put("&n", "<underlined>");
-        put("&o", "<italic>");
-        put("&r", "<reset>");
-        put("&1", "<dark_blue>");
-        put("&2", "<dark_green>");
-        put("&3", "<dark_aqua>");
-        put("&4", "<dark_red>");
-        put("&5", "<dark_purple>");
-        put("&6", "<gold>");
-        put("&7", "<gray>");
-        put("&8", "<dark_gray>");
-        put("&9", "<blue>");
-        put("&0", "<black>");
-    }};
+    private static final MiniMessage MM = MiniMessage.miniMessage();
+    private static final Set<Material> POTIONS = Set.of(Material.POTION, Material.LINGERING_POTION, Material.SPLASH_POTION);
+    private static final Pattern LEGACY_CODE = Pattern.compile("&[a-fk-or0-9]", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PLAYER_NAME = Pattern.compile("[A-Za-z0-9_]{1,16}");
+    private static final Map<String, String> LEGACY_TAGS = Map.ofEntries(
+            Map.entry("&0", "<black>"), Map.entry("&1", "<dark_blue>"), Map.entry("&2", "<dark_green>"),
+            Map.entry("&3", "<dark_aqua>"), Map.entry("&4", "<dark_red>"), Map.entry("&5", "<dark_purple>"),
+            Map.entry("&6", "<gold>"), Map.entry("&7", "<gray>"), Map.entry("&8", "<dark_gray>"),
+            Map.entry("&9", "<blue>"), Map.entry("&a", "<green>"), Map.entry("&b", "<aqua>"),
+            Map.entry("&c", "<red>"), Map.entry("&d", "<light_purple>"), Map.entry("&e", "<yellow>"),
+            Map.entry("&f", "<white>"), Map.entry("&k", "<obfuscated>"), Map.entry("&l", "<bold>"),
+            Map.entry("&m", "<strikethrough>"), Map.entry("&n", "<underlined>"), Map.entry("&o", "<italic>"),
+            Map.entry("&r", "<reset>"));
 
-    CoreProtectBridge cpb = new CoreProtectBridge();
-    MiniMessage mm = MiniMessage.miniMessage();
+    private final ItemizerX plugin;
 
-    public boolean execute(CommandSender sender, String[] args)
+    ItemizerXCommand(ItemizerX plugin)
     {
-        ItemizerX plugin = ItemizerX.plugin;
-        if (plugin == null)
-        {
-            return false;
-        }
-        if (!sender.hasPermission("itemizer.use"))
-        {
-            sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-            return true;
-        }
+        this.plugin = plugin;
+    }
 
+    void execute(CommandSender sender, String[] args)
+    {
         if (args.length == 0)
         {
-            sender.sendMessage(mm.deserialize("<aqua>ItemizerX <gold>v" + plugin.getPluginMeta().getVersion() + "<aqua> by <gold>" + StringUtils.join(plugin.getPluginMeta().getAuthors(), ", ")));
-            sender.sendMessage(mm.deserialize("<aqua>Type <gold><click:run_command:/itemizer help>/itemizer help</click> <aqua>for help"));
-            return true;
+            send(sender, "<aqua>ItemizerX <gold>v" + plugin.getPluginMeta().getVersion() + "<aqua> by <gold>"
+                    + String.join(", ", plugin.getPluginMeta().getAuthors()));
+            send(sender, "<aqua>Type <gold><click:run_command:/itemizer help>/itemizer help</click> <aqua>for help");
+            return;
         }
-
-        if (!(sender instanceof final Player player))
+        if (!(sender instanceof Player player))
         {
-            sender.sendMessage(mm.deserialize("<dark_red>You must be a player to execute this command!"));
-            return true;
+            send(sender, "<dark_red>You must be a player to execute this command!");
+            return;
         }
 
-        final ItemStack item = player.getInventory().getItemInMainHand();
-        final boolean hasItem = item.getType() != Material.AIR;
-        final boolean hasPotion = POTIONS.contains(item.getType());
-        final boolean hasBook = item.getType() == Material.WRITTEN_BOOK;
-        final ItemMeta meta = item.getItemMeta();
-
+        ItemStack item = player.getInventory().getItemInMainHand();
         switch (args[0].toLowerCase(Locale.ROOT))
         {
-            case "help" ->
-            {
-                sender.sendMessage(mm.deserialize("""
-                        <dark_aqua>=============<white>[<light_purple>ItemizerX Commands<white>]<dark_aqua>=============
-                        <aqua>/itemizer name <<white>name<aqua>> <red>- <gold>Name your item
-                        <aqua>/itemizer id <<white>id<aqua>> <red>- <gold>Change the item's material
-                        <aqua>/itemizer amount <<white>1-99<aqua>> <red>- <gold>Change the stack amount
-                        <aqua>/itemizer undo <red>- <gold>Undo your last item edit
-                        <aqua>/itemizer redo <red>- <gold>Redo an undone item edit
-                        <aqua>/itemizer property <red>- <gold>Edit item properties
-                        <aqua>/itemizer component <red>- <gold>Inspect or apply any vanilla item component
-                        <aqua>/itemizer data <red>- <gold>Edit typed persistent custom data
-                        <aqua>/itemizer container <red>- <gold>Edit bundle and container contents
-                        <aqua>/itemizer preset <red>- <gold>Save, load, import, and export item presets
-                        <aqua>/itemizer gui <red>- <gold>Open the item dialog
-                        <aqua>/itemizer inventory <red>- <gold>Open the inventory-editor fallback
-                        <aqua>/itemizer lore <red>- <gold>Lore editing command
-                        <aqua>/itemizer potion <red>- <gold>Potion editing command
-                        <aqua>/itemizer attr <red>- <gold>Attribute editing command
-                        <aqua>/itemizer flag <red>- <gold>Flag editing command
-                        <aqua>/itemizer enchant <red>- <gold>Enchant editing command
-                        <aqua>/itemizer title <<white>name<aqua>> <red>- <gold>Set the book's title
-                        <aqua>/itemizer author <<white>name<aqua>> <red>- <gold>Set the book's author
-                        <aqua>/itemizer head <<white>name<aqua>> <red>- <gold>Set the player of the head
-                        <aqua>/itemizer sign <<white>line<aqua>> <<white>text<aqua>> <red>- <gold>Change the line on the sign
-                        <aqua>/itemizer clearall <red>- <gold>Clears all metadata from your item"""));
-                return true;
-            }
-            case "name" ->
-            {
-                if (!sender.hasPermission("itemizer.name"))
-                {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                    return true;
-                }
-                if (args.length == 1)
-                {
-                    sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Name Commands<white>]<dark_aqua>==============="));
-                    sender.sendMessage(mm.deserialize("<aqua>/itemizer name <<white>name<aqua>> <red>- <gold>Name your item"));
-                }
-                else
-                {
-                    if (!hasItem)
-                    {
-                        sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
-                        return true;
-                    }
-                    Component name = colorize(StringUtils.join(args, " ", 1, args.length));
-                    assert meta != null;
-                    meta.displayName(name);
-                    item.setItemMeta(meta);
-                    sender.sendMessage(mm.deserialize("<dark_green>The name of the item in your hand has been set to <reset>'" + mm.serialize(name) + "<reset>'"));
-                }
-                return true;
-            }
-            case "id" ->
-            {
-                if (!sender.hasPermission("itemizer.id"))
-                {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                    return true;
-                }
-                if (args.length == 1)
-                {
-                    sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>ID Commands<white>]<dark_aqua>==============="));
-                    sender.sendMessage(mm.deserialize("<aqua>/itemizer id <<white>id<aqua>> <red>- <gold>Change the item's material"));
-                    return true;
-                }
-                if (!hasItem)
-                {
-                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
-                    return true;
-                }
-                Material material = Material.matchMaterial(args[1].toUpperCase());
-                if (material == null)
-                {
-                    sender.sendMessage(mm.deserialize("<dark_red>The material <white>\"" + args[1] + "<white>\" <dark_red>does not exist!"));
-                    return true;
-                }
-                player.getInventory().setItemInMainHand(item.withType(material));
-                sender.sendMessage(mm.deserialize("<dark_green>The material of the item has changed to <reset>'" + material.name() + "'"));
-                return true;
-            }
+            case "help" -> help(player);
+            case "name" -> name(player, item, args);
+            case "id" -> id(player, item, args);
             case "amount" ->
             {
-                if (!hasItem)
+                if (holding(player, item))
                 {
-                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
-                    return true;
+                    ItemCommands.amount(player, item, args);
                 }
-                return ItemCommands.amount(player, item, args);
             }
-            case "undo" ->
-            {
-                plugin.history.undo(player);
-                return true;
-            }
-            case "redo" ->
-            {
-                plugin.history.redo(player);
-                return true;
-            }
+            case "undo" -> plugin.history.undo(player);
+            case "redo" -> plugin.history.redo(player);
             case "component", "components", "nbt" ->
             {
-                if (!hasItem)
+                if (holding(player, item))
                 {
-                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
-                    return true;
+                    ItemCommands.component(player, item, args[0].equalsIgnoreCase("nbt") ? new String[]{"component", "nbt"} : args);
                 }
-                // /itemizer nbt is a convenient alias for /itemizer component nbt.
-                if (args[0].equalsIgnoreCase("nbt"))
-                {
-                    args = new String[]{"component", "nbt"};
-                }
-                return ItemCommands.component(player, item, args);
             }
             case "property", "properties" ->
             {
-                if (!hasItem)
+                if (holding(player, item))
                 {
-                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
-                    return true;
+                    ItemCommands.property(player, item, args);
                 }
-                return ItemCommands.property(player, item, args);
             }
             case "data", "pdc" ->
             {
-                if (!hasItem)
+                if (holding(player, item))
                 {
-                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
-                    return true;
+                    ItemDataCommands.execute(player, item, args);
                 }
-                return ItemDataCommands.execute(player, item, args);
             }
             case "container", "contents" ->
             {
-                if (!hasItem)
+                if (holding(player, item))
                 {
-                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
-                    return true;
-                }
-                return ContainerCommands.execute(player, item, args);
-            }
-            case "preset", "presets" ->
-            {
-                return plugin.presets.execute(player, args);
-            }
-            case "gui", "editor", "dialog" ->
-            {
-                plugin.dialog.open(player);
-                return true;
-            }
-            case "inventory" ->
-            {
-                plugin.editor.open(player);
-                return true;
-            }
-            case "lore" ->
-            {
-                if (!sender.hasPermission("itemizer.lore"))
-                {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                    return true;
-                }
-                if (args.length == 1)
-                {
-                    sender.sendMessage(mm.deserialize("""
-                            <dark_aqua>===============<white>[<light_purple>Lore Commands<white>]<dark_aqua>===============
-                            <aqua>/itemizer lore add <<white>text<aqua>> <red>- <gold>Add a line of text to your item's lore
-                            <aqua>/itemizer lore remove <<white>index<aqua>> <red>- <gold>Remove a line of text from your item's lore
-                            <aqua>/itemizer lore change <<white>index<aqua>> <<white>text<aqua>> <red>- <gold>Change a line of text in your item's lore
-                            <aqua>/itemizer lore clear <red>- <gold>Clear the item's lore"""));
-                    return true;
-                }
-                if (!hasItem)
-                {
-                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
-                    return true;
-                }
-                else
-                {
-                    switch (args[1].toLowerCase(Locale.ROOT))
-                    {
-                        case "add" ->
-                        {
-                            if (!sender.hasPermission("itemizer.lore.add"))
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                                return true;
-                            }
-                            if (args.length == 2)
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Lore Commands<white>]<dark_aqua>==============="));
-                                sender.sendMessage(mm.deserialize("<aqua>/itemizer lore add <<white>text<aqua>> <red>- <gold>Add a line of text to your item's lore"));
-                                return true;
-                            }
-                            Component lore = colorize(StringUtils.join(args, " ", 2, args.length));
-                            assert meta != null;
-                            List<Component> lores = new ArrayList<>();
-                            if (meta.lore() != null)
-                            {
-                                lores = meta.lore();
-                            }
-                            lores.add(lore);
-                            meta.lore(lores);
-                            item.setItemMeta(meta);
-                            sender.sendMessage(mm.deserialize("<dark_green>Line <white>'" + mm.serialize(lore) + "<white>' <dark_green>added to the item's lore"));
-                            return true;
-                        }
-                        case "remove" ->
-                        {
-                            if (!sender.hasPermission("itemizer.lore.remove"))
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                                return true;
-                            }
-                            if (args.length == 2)
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Lore Commands<white>]<dark_aqua>==============="));
-                                sender.sendMessage(mm.deserialize("<aqua>/itemizer lore remove <<white>index<aqua>> <red>- <gold>Remove a line of text from your item's lore"));
-                                return true;
-                            }
-                            Integer index = parseInt(sender, args[2]);
-                            if (index == null)
-                            {
-                                return true;
-                            }
-                            assert meta != null;
-                            List<Component> lores;
-                            if (meta.lore() != null)
-                            {
-                                lores = meta.lore();
-                            }
-                            else
-                            {
-                                sender.sendMessage(mm.deserialize("<yellow>This item has no lores."));
-                                return true;
-                            }
-                            if (index < 1 || index > lores.size())
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>The item's lore doesn't have line <white>'" + index + "'"));
-                                return true;
-                            }
-                            lores.remove(index - 1);
-                            meta.lore(lores);
-                            item.setItemMeta(meta);
-                            sender.sendMessage(mm.deserialize("<dark_green>Line <white>'" + index + "<white>' <dark_green>removed from the item's lore"));
-                            return true;
-                        }
-                        case "change" ->
-                        {
-                            if (!sender.hasPermission("itemizer.lore.change"))
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                                return true;
-                            }
-                            if (args.length < 4)
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Lore Commands<white>]<dark_aqua>==============="));
-                                sender.sendMessage(mm.deserialize("<aqua>/itemizer lore change <<white>index<aqua>> <<white>text<aqua>> <red>- <gold>Change a line of text in your item's lore"));
-                                return true;
-                            }
-                            Integer index = parseInt(sender, args[2]);
-                            if (index == null)
-                            {
-                                return true;
-                            }
-                            Component lore = colorize(StringUtils.join(args, " ", 3, args.length));
-                            assert meta != null;
-                            List<Component> lores;
-                            if (meta.lore() != null)
-                            {
-                                lores = meta.lore();
-                            }
-                            else
-                            {
-                                sender.sendMessage(mm.deserialize("<yellow>This item has no lores."));
-                                return true;
-                            }
-                            if (index < 1 || index > lores.size())
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>The item's lore doesn't have line <white>'" + index + "'"));
-                                return true;
-                            }
-                            lores.set(index - 1, lore);
-                            meta.lore(lores);
-                            item.setItemMeta(meta);
-                            sender.sendMessage(mm.deserialize("<dark_green>Line <white>'" + index + "' <dark_green>has been changed to <white>'" + mm.serialize(lore) + "<white>'"));
-                            return true;
-                        }
-                        case "clear" ->
-                        {
-                            if (!sender.hasPermission("itemizer.lore.clear"))
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                                return true;
-                            }
-                            assert meta != null;
-                            if (meta.lore() == null || meta.lore().isEmpty())
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>The item has no lores."));
-                                return true;
-                            }
-                            meta.lore(null);
-                            item.setItemMeta(meta);
-                            sender.sendMessage(mm.deserialize("<dark_green>The item's lore has been cleared!"));
-                            return true;
-                        }
-                        default ->
-                        {
-                            sender.sendMessage(mm.deserialize("<aqua>Unknown sub-command. Type <gold><click:run_command:/itemizer lore</click> <aqua>for help."));
-                            return true;
-                        }
-                    }
+                    ContainerCommands.execute(player, item, args);
                 }
             }
-            case "potion" ->
+            case "preset", "presets" -> plugin.presets.execute(player, args);
+            case "gui", "editor", "dialog" -> plugin.dialog.open(player);
+            case "inventory" -> plugin.editor.open(player);
+            case "lore" -> lore(player, item, args);
+            case "potion" -> potion(player, item, args);
+            case "attr" -> attribute(player, item, args);
+            case "flag" -> flag(player, item, args);
+            case "enchant" -> enchant(player, item, args);
+            case "title" -> title(player, item, args);
+            case "author" -> author(player, item, args);
+            case "head" -> head(player, item, args);
+            case "sign" -> sign(player, args);
+            case "clearall" ->
             {
-                if (!sender.hasPermission("itemizer.potion"))
+                if (!denied(player, "itemizer.clearall") && holding(player, item))
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                    return true;
+                    item.setItemMeta(null);
+                    send(player, "<dark_green>All data cleared from your item");
                 }
-                if (args.length == 1)
-                {
-                    sender.sendMessage(mm.deserialize("""
-                            <dark_aqua>===============<white>[<light_purple>Potion Commands<white>]<dark_aqua>===============
-                            <aqua>/itemizer potion add <<white>effect<aqua>> <<white>level<aqua>> <<white>time[tick]<aqua>> <red>- <gold>Add a potion effect
-                            <aqua>/itemizer potion remove <<white>effect<aqua>> <red>- <gold>Remove a potion effect
-                            <aqua>/itemizer potion change <<white>name<aqua>> <red>- <gold>Change the potion type
-                            <aqua>/itemizer potion color <<white>hexcolor<aqua>> <red>- <gold>Set the potion color
-                            <aqua>/itemizer potion list <red>- <gold>List all potion effects"""));
-                    return true;
-                }
-                if (!hasPotion)
-                {
-                    sender.sendMessage(mm.deserialize("<red>You do not have a potion in your hand."));
-                    return true;
-                }
-                else
-                {
-                    switch (args[1].toLowerCase(Locale.ROOT))
-                    {
-                        case "add" ->
-                        {
-                            if (!sender.hasPermission("itemizer.potion.add"))
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                                return true;
-                            }
-                            if (args.length < 5)
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Potion Commands<white>]<dark_aqua>==============="));
-                                sender.sendMessage(mm.deserialize("<aqua>/itemizer potion add <<white>effect<aqua>> <<white>level<aqua>> <<white>time[tick]<aqua>> <red>- <gold>Add a potion effect"));
-                                return true;
-                            }
-                            PotionEffectType potType = findPotionEffect(args[2]);
-                            if (potType == null)
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>The potion <white>\"" + args[2] + "<white>\" <dark_red>does not exist!"));
-                                return true;
-                            }
-                            Integer level = parseInt(sender, args[3]);
-                            Integer tick = parseInt(sender, args[4]);
-                            if (level == null || tick == null)
-                            {
-                                return true;
-                            }
-                            final PotionEffect pot = new PotionEffect(potType, tick, level);
-                            final PotionMeta potionMeta = (PotionMeta) meta;
-                            assert potionMeta != null;
-                            if (potionMeta.hasCustomEffect(pot.getType()))
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>This potion already has <white>" + pot.getType().getKey()));
-                                return true;
-                            }
-                            potionMeta.addCustomEffect(pot, false);
-                            item.setItemMeta(potionMeta);
-                            sender.sendMessage(mm.deserialize(pot.getType().getKey() + " <dark_green>has been added to the potion"));
-                            return true;
-                        }
-                        case "remove" ->
-                        {
-                            if (!sender.hasPermission("itemizer.potion.remove"))
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                                return true;
-                            }
-                            if (args.length == 2)
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Potion Commands<white>]<dark_aqua>==============="));
-                                sender.sendMessage(mm.deserialize("<aqua>/itemizer potion remove <<white>effect<aqua>> <red>- <gold>Remove a potion effect"));
-                                return true;
-                            }
-                            PotionEffectType potType = findPotionEffect(args[2]);
-                            if (potType == null)
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>The potion effect <white>\"" + args[2] + "<white>\" <dark_red>does not exist!"));
-                                return true;
-                            }
-                            final PotionMeta potionMeta = (PotionMeta) meta;
-                            assert potionMeta != null;
-                            if (!potionMeta.hasCustomEffect(potType))
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>This potion does not have <white>" + potType.getKey()));
-                                return true;
-                            }
-                            potionMeta.removeCustomEffect(potType);
-                            item.setItemMeta(potionMeta);
-                            sender.sendMessage(mm.deserialize(potType.getKey() + " <dark_green>has been removed from the potion"));
-                            return true;
-                        }
-                        case "change" ->
-                        {
-                            if (!sender.hasPermission("itemizer.potion.change"))
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                                return true;
-                            }
-                            if (args.length == 2)
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Potion Commands<white>]<dark_aqua>==============="));
-                                sender.sendMessage(mm.deserialize("<aqua>/itemizer potion change <<white>name<aqua>> <red>- <gold>Change the potion type"));
-                                return true;
-                            }
-                            Material material = Material.matchMaterial(args[2]);
-                            if (material == null || !POTIONS.contains(material))
-                            {
-                                sender.sendMessage(mm.deserialize(material != null ? "<white>'" + material.name() + "' <dark_red>is not a potion type!" : "<dark_red>That material doesn't exist!"));
-                                return true;
-                            }
+            }
+            default -> unknown(player, "help");
+        }
+    }
 
-                            player.getInventory().setItemInMainHand(item.withType(material));
-                            sender.sendMessage(mm.deserialize("<dark_green>The potion in hand has changed to <white>'" + material.name() + "'"));
-                            return true;
-                        }
-                        case "color" ->
-                        {
-                            if (!sender.hasPermission("itemizer.potion.color"))
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                                return true;
-                            }
-                            if (args.length < 3)
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Potion Commands<white>]<dark_aqua>==============="));
-                                sender.sendMessage(mm.deserialize("<aqua>/itemizer potion color <<white>hexcolor<aqua>> <red>- <gold>Set the potion color"));
-                                return true;
-                            }
-                            final PotionMeta potionMeta = (PotionMeta) meta;
-                            assert potionMeta != null;
-                            try
-                            {
-                                java.awt.Color awtColor = java.awt.Color.decode(args[2]);
-                                Color color = Color.fromRGB(awtColor.getRed(), awtColor.getGreen(), awtColor.getBlue());
-                                potionMeta.setColor(color);
-                                item.setItemMeta(potionMeta);
-                                sender.sendMessage(mm.deserialize(args[2] + " <dark_green>has been set as potion color"));
-                            }
-                            catch (NumberFormatException ignored)
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>The hex <white>\"" + args[2] + "<white>\" <dark_red>is invalid!"));
-                                return true;
-                            }
-                            return true;
-                        }
-                        case "list" ->
-                        {
-                            if (!sender.hasPermission("itemizer.potion.list"))
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                                return true;
-                            }
-                            StringBuilder sb = new StringBuilder();
-                            RegistryAccess.registryAccess().getRegistry(RegistryKey.MOB_EFFECT).iterator().forEachRemaining(effect -> {
-                                sb.append(", ").append(effect.getKey().getKey());
-                            });
-                            sender.sendMessage(mm.deserialize("<dark_green>Available potion effects: <yellow>" + sb.toString().replaceFirst(", ", "")));
-                            return true;
-                        }
-                        default ->
-                        {
-                            sender.sendMessage(mm.deserialize("<aqua>Unknown sub-command. Type <gold><click:run_command:/itemizer potion>/itemizer potion</click> <aqua>for help."));
-                            return true;
-                        }
-                    }
-                }
-            }
-            case "attr" ->
-            {
-                if (!sender.hasPermission("itemizer.attr"))
-                {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                    return true;
-                }
-                if (args.length == 1)
-                {
-                    sender.sendMessage(mm.deserialize("""
-                            <dark_aqua>===============<white>[<light_purple>Attribute Commands<white>]<dark_aqua>===============
-                            <aqua>/itemizer attr add <<white>name<aqua>> <<white>amount<aqua>> [<white>operation<aqua>] [<white>slot group<aqua>] [<white>modifier key<aqua>] <red>- <gold>Add an attribute
-                            <aqua>/itemizer attr edit <<white>name<aqua>> <<white>amount<aqua>> [<white>operation<aqua>] [<white>slot group<aqua>] [<white>modifier key<aqua>] <red>- <gold>Edit an attribute modifier
-                            <aqua>/itemizer attr remove <<white>name<aqua>> [<white>modifier key<aqua>] <red>- <gold>Remove one or all matching modifiers
-                            <aqua>/itemizer attr list <red>- <gold>List all item's attributes
-                            <aqua>/itemizer attr listall <red>- <gold>List all supported attributes"""));
-                    return true;
-                }
-                if (!hasItem)
-                {
-                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
-                    return true;
-                }
-                else
-                {
-                    switch (args[1].toLowerCase(Locale.ROOT))
-                    {
-                        case "add" ->
-                        {
-                            if (!sender.hasPermission("itemizer.attr.add"))
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                                return true;
-                            }
-                            plugin.attr.addAttr(player, args);
-                            return true;
-                        }
-                        case "edit" ->
-                        {
-                            if (!sender.hasPermission("itemizer.attr.edit"))
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                                return true;
-                            }
-                            plugin.attr.editAttr(player, args);
-                            return true;
-                        }
-                        case "remove" ->
-                        {
-                            if (!sender.hasPermission("itemizer.attr.remove"))
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                                return true;
-                            }
+    private void help(Player player)
+    {
+        send(player, """
+                <dark_aqua>=============<white>[<light_purple>ItemizerX Commands<white>]<dark_aqua>=============
+                <aqua>/itemizer name <<white>name<aqua>> <red>- <gold>Name your item
+                <aqua>/itemizer id <<white>id<aqua>> <red>- <gold>Change the item's material
+                <aqua>/itemizer amount <<white>1-99<aqua>> <red>- <gold>Change the stack amount
+                <aqua>/itemizer undo <red>- <gold>Undo your last item edit
+                <aqua>/itemizer redo <red>- <gold>Redo an undone item edit
+                <aqua>/itemizer property <red>- <gold>Edit item properties
+                <aqua>/itemizer component <red>- <gold>Inspect or apply any vanilla item component
+                <aqua>/itemizer data <red>- <gold>Edit typed persistent custom data
+                <aqua>/itemizer container <red>- <gold>Edit bundle and container contents
+                <aqua>/itemizer preset <red>- <gold>Save, load, import, and export item presets
+                <aqua>/itemizer gui <red>- <gold>Open the item dialog
+                <aqua>/itemizer inventory <red>- <gold>Open the inventory editor
+                <aqua>/itemizer lore <red>- <gold>Lore editing commands
+                <aqua>/itemizer potion <red>- <gold>Potion editing commands
+                <aqua>/itemizer attr <red>- <gold>Attribute editing commands
+                <aqua>/itemizer flag <red>- <gold>Flag editing commands
+                <aqua>/itemizer enchant <red>- <gold>Enchantment editing commands
+                <aqua>/itemizer title <<white>name<aqua>> <red>- <gold>Set the book's title
+                <aqua>/itemizer author <<white>name<aqua>> <red>- <gold>Set the book's author
+                <aqua>/itemizer head <<white>name<aqua>> <red>- <gold>Set the player of the head
+                <aqua>/itemizer sign <<white>line<aqua>> <<white>text<aqua>> <red>- <gold>Change a line of the sign you look at
+                <aqua>/itemizer clearall <red>- <gold>Clear all metadata from your item""");
+    }
 
-                            if (args.length < 3) {
-                                return true;
-                            }
+    private void name(Player player, ItemStack item, String[] args)
+    {
+        if (denied(player, "itemizer.name"))
+        {
+            return;
+        }
+        if (args.length == 1)
+        {
+            usage(player, "Name Commands", "<aqua>/itemizer name <<white>name<aqua>> <red>- <gold>Name your item");
+            return;
+        }
+        if (!holding(player, item))
+        {
+            return;
+        }
+        Component name = colorize(StringUtils.join(args, " ", 1, args.length));
+        item.editMeta(meta -> meta.displayName(name));
+        send(player, "<dark_green>The name of the item in your hand has been set to <reset>'" + MM.serialize(name) + "<reset>'");
+    }
 
-                            plugin.attr.removeAttr(player, args);
-                            return true;
-                        }
-                        case "list" ->
-                        {
-                            if (!sender.hasPermission("itemizer.attr.list"))
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                                return true;
-                            }
-                            plugin.attr.listAttr(player);
-                            return true;
-                        }
-                        case "listall" ->
-                        {
-                            if (!sender.hasPermission("itemizer.attr.listall"))
-                            {
-                                sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                                return true;
-                            }
-                            sender.sendMessage(mm.deserialize("<dark_green>Supported attributes: <yellow>" + Attributes.getAttributes()));
-                            return true;
-                        }
-                        default ->
-                        {
-                            sender.sendMessage(mm.deserialize("<aqua>Unknown sub-command. Type <gold><click:run_command:/itemizer attr>/itemizer attr</click> <aqua>for help."));
-                            return true;
-                        }
-                    }
-                }
-            }
-            case "flag" ->
-            {
-                if (!sender.hasPermission("itemizer.flag"))
-                {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                    return true;
-                }
-                if (args.length == 1)
-                {
-                    sender.sendMessage(mm.deserialize("""
-                            <dark_aqua>===============<white>[<light_purple>Flag Commands<white>]<dark_aqua>===============
-                            <aqua>/itemizer flag add <<white>name<aqua> <red>- <gold>Add a flag
-                            <aqua>/itemizer flag remove <<white>name<aqua> <red>- <gold>Remove a flag
-                            <aqua>/itemizer flag list <red>- <gold>List all item's flags
-                            <aqua>/itemizer flag listall <red>- <gold>List all available flags"""));
-                    return true;
-                }
-                if (!hasItem)
-                {
-                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
-                    return true;
-                }
-                switch (args[1].toLowerCase(Locale.ROOT))
-                {
-                    case "add" ->
-                    {
-                        if (!sender.hasPermission("itemizer.flag.add"))
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                            return true;
-                        }
-                        if (args.length == 2)
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Flag Commands<white>]<dark_aqua>==============="));
-                            sender.sendMessage(mm.deserialize("<aqua>/itemizer flag add <<white>name<aqua> <red>- <gold>Add a flag"));
-                            return true;
-                        }
-                        ItemFlag flag = null;
-                        try
-                        {
-                            flag = ItemFlag.valueOf(args[2].toUpperCase());
-                        }
-                        catch (Exception ignored)
-                        {
-                        }
-                        if (flag == null)
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_red>The flag <white>\"" + args[2] + "<white>\" does not exist!"));
-                            return true;
-                        }
-                        assert meta != null;
-                        if (meta.getItemFlags().contains(flag))
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_red>The flag <white>'" + args[2].toUpperCase() + "' <dark_red>is already added to the item!"));
-                            return true;
-                        }
-                        meta.addItemFlags(flag);
-                        item.setItemMeta(meta);
-                        sender.sendMessage(mm.deserialize("<dark_green>The flag <white>'" + args[2].toUpperCase() + "' <dark_green>has been added to your item!"));
-                        return true;
-                    }
-                    case "remove" ->
-                    {
-                        if (!sender.hasPermission("itemizer.flag.remove"))
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                            return true;
-                        }
-                        if (args.length == 2)
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Flag Commands<white>]<dark_aqua>==============="));
-                            sender.sendMessage(mm.deserialize("<aqua>/itemizer flag remove <<white>name<aqua> <red>- <gold>Remove a flag"));
-                            return true;
-                        }
-                        ItemFlag flag = null;
-                        try
-                        {
-                            flag = ItemFlag.valueOf(args[2].toUpperCase());
-                        }
-                        catch (Exception ignored)
-                        {
-                        }
-                        if (flag == null)
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_red>The flag <white>\"" + args[2] + "<white>\" does not exist!"));
-                            return true;
-                        }
-                        assert meta != null;
-                        if (!meta.getItemFlags().contains(flag))
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_red>The flag <white>'" + args[2].toUpperCase() + "<white>' <dark_red>has not been added to the item!"));
-                            return true;
-                        }
-                        meta.removeItemFlags(flag);
-                        item.setItemMeta(meta);
-                        sender.sendMessage(mm.deserialize("<dark_green>The flag <white>'" + args[2].toUpperCase() + "<white>' <dark_green>has been removed from your item!"));
-                        return true;
-                    }
-                    case "list" ->
-                    {
-                        if (!sender.hasPermission("itemizer.flag.list"))
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                            return true;
-                        }
-                        assert meta != null;
-                        if (Objects.requireNonNull(meta.getItemFlags()).isEmpty())
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_red>The item in your hand does not have any flags"));
-                            return true;
-                        }
-                        sender.sendMessage(mm.deserialize("<dark_green>Item flags: <yellow>" + StringUtils.join(meta.getItemFlags(), ", ")));
-                        return true;
-                    }
-                    case "listall" ->
-                    {
-                        if (!sender.hasPermission("itemizer.flag.listall"))
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                            return true;
-                        }
-                        sender.sendMessage(mm.deserialize("<dark_green>Available item flags: <yellow>" + StringUtils.join(ItemFlag.values(), ", ")));
-                        return true;
-                    }
-                    default ->
-                    {
-                        sender.sendMessage(mm.deserialize("<aqua>Unknown sub-command. Type <gold><click:run_command:/itemizer flag>/itemizer flag</click> <aqua>for help."));
-                        return true;
-                    }
-                }
-            }
-            case "enchant" ->
-            {
-                if (!sender.hasPermission("itemizer.enchant"))
-                {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                    return true;
-                }
-                if (args.length == 1)
-                {
-                    sender.sendMessage(mm.deserialize("""
-                            <dark_aqua>===============<white>[<light_purple>Enchant Commands<white>]<dark_aqua>===============
-                            <aqua>/itemizer enchant add <<white>name<aqua>> <<white>level<aqua>> <red>- <gold>Add an enchant
-                            <aqua>/itemizer enchant remove <<white>name<aqua>> <red>- <gold>Remove an enchant
-                            <aqua>/itemizer enchant list <red>- <gold>List all item's enchants
-                            <aqua>/itemizer enchant listall <red>- <gold>List all available enchants"""));
-                    return true;
-                }
-                if (!hasItem)
-                {
-                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
-                    return true;
-                }
-                switch (args[1].toLowerCase(Locale.ROOT))
-                {
-                    case "add" ->
-                    {
-                        if (!sender.hasPermission("itemizer.enchant.add"))
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                            return true;
-                        }
+    private void id(Player player, ItemStack item, String[] args)
+    {
+        if (denied(player, "itemizer.id"))
+        {
+            return;
+        }
+        if (args.length == 1)
+        {
+            usage(player, "ID Commands", "<aqua>/itemizer id <<white>id<aqua>> <red>- <gold>Change the item's material");
+            return;
+        }
+        if (!holding(player, item))
+        {
+            return;
+        }
+        Material material = Material.matchMaterial(args[1]);
+        if (material == null || !material.isItem() || material.isAir())
+        {
+            send(player, "<dark_red>The item <white>\"" + MM.escapeTags(args[1]) + "<white>\" <dark_red>does not exist!");
+            return;
+        }
+        player.getInventory().setItemInMainHand(item.withType(material));
+        send(player, "<dark_green>The material of the item has changed to <reset>'" + material.getKey() + "'");
+    }
 
-                        plugin.ench.addEnchantment(player, item, args);
-                        return true;
-                    }
-                    case "remove" ->
-                    {
-                        if (!sender.hasPermission("itemizer.enchant.remove"))
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                            return true;
-                        }
+    private void lore(Player player, ItemStack item, String[] args)
+    {
+        if (denied(player, "itemizer.lore"))
+        {
+            return;
+        }
+        String add = "<aqua>/itemizer lore add <<white>text<aqua>> <red>- <gold>Add a line of text to your item's lore";
+        String remove = "<aqua>/itemizer lore remove <<white>index<aqua>> <red>- <gold>Remove a line of text from your item's lore";
+        String change = "<aqua>/itemizer lore change <<white>index<aqua>> <<white>text<aqua>> <red>- <gold>Change a line of text in your item's lore";
+        String clear = "<aqua>/itemizer lore clear <red>- <gold>Clear the item's lore";
+        if (args.length == 1)
+        {
+            usage(player, "Lore Commands", add, remove, change, clear);
+            return;
+        }
+        if (!holding(player, item))
+        {
+            return;
+        }
 
-                        plugin.ench.removeEnchantment(player, item, args);
-                        return true;
-                    }
-                    case "list" ->
-                    {
-                        if (!sender.hasPermission("itemizer.enchant.list"))
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                            return true;
-                        }
-                        assert meta != null;
-                        if (Objects.requireNonNull(meta.getEnchants()).isEmpty())
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_red>This item doesn't hold any enchants"));
-                            return true;
-                        }
-                        sender.sendMessage(mm.deserialize("<dark_green>Item enchants: <yellow>" + StringUtils.join(meta.getEnchants().keySet(), ", ")));
-                        return true;
-                    }
-                    case "listall" ->
-                    {
-                        if (!sender.hasPermission("itemizer.enchant.listall"))
-                        {
-                            sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                            return true;
-                        }
-                        StringBuilder sb = new StringBuilder();
-                        RegistryAccess.registryAccess().getRegistry(RegistryKey.ENCHANTMENT).iterator().forEachRemaining(enchantment -> {
-                            sb.append(", ").append(enchantment.getKey().getKey());
-                        });
-                        sender.sendMessage(mm.deserialize("<dark_green>Available item enchantments: <yellow>" + sb.toString().replaceFirst(", ", "")));
-                        return true;
-                    }
-                    default ->
-                    {
-                        sender.sendMessage(mm.deserialize("<aqua>Unknown sub-command. Type <gold><click:run_command:/itemizer enchant>/itemizer enchant</click> <aqua>for help."));
-                        return true;
-                    }
-                }
-            }
-            case "title" ->
+        ItemMeta meta = item.getItemMeta();
+        List<Component> lines = meta.lore() == null ? new ArrayList<>() : new ArrayList<>(meta.lore());
+        switch (args[1].toLowerCase(Locale.ROOT))
+        {
+            case "add" ->
             {
-                if (!sender.hasPermission("itemizer.title"))
+                if (denied(player, "itemizer.lore.add"))
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                    return true;
+                    return;
                 }
-                if (args.length == 1)
+                if (args.length == 2)
                 {
-                    sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Title Command<white>]<dark_aqua>==============="));
-                    sender.sendMessage(mm.deserialize("<aqua>/itemizer title <<white>name<aqua>> <red>- <gold>Set the book's title"));
-                    return true;
+                    usage(player, "Lore Commands", add);
+                    return;
                 }
-                if (!hasBook)
-                {
-                    sender.sendMessage(mm.deserialize("<red>You do not have a Written Book in your hand."));
-                    return true;
-                }
-                Component name = colorize(StringUtils.join(args, " ", 1, args.length));
-                final BookMeta bookMeta = (BookMeta) meta;
-                assert bookMeta != null;
-                bookMeta.title(name);
-                item.setItemMeta(bookMeta);
-                sender.sendMessage(mm.deserialize("<dark_green>The title of the book has been set to <white>'" + mm.serialize(name) + "<white>'"));
-                return true;
+                Component line = colorize(StringUtils.join(args, " ", 2, args.length));
+                lines.add(line);
+                meta.lore(lines);
+                item.setItemMeta(meta);
+                send(player, "<dark_green>Line <white>'" + MM.serialize(line) + "<white>' <dark_green>added to the item's lore");
             }
-            case "author" ->
+            case "remove" ->
             {
-                if (!sender.hasPermission("itemizer.author"))
+                if (denied(player, "itemizer.lore.remove"))
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                    return true;
+                    return;
                 }
-                if (args.length == 1)
+                if (args.length == 2)
                 {
-                    sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Author Command<white>]<dark_aqua>==============="));
-                    sender.sendMessage(mm.deserialize("<aqua>/itemizer author <<white>name<aqua>> <red>- <gold>Set the book's author"));
-                    return true;
+                    usage(player, "Lore Commands", remove);
+                    return;
                 }
-                if (!hasBook)
+                Integer index = loreIndex(player, lines, args[2]);
+                if (index == null)
                 {
-                    sender.sendMessage(mm.deserialize("<red>You do not have a Written Book in your hand."));
-                    return true;
+                    return;
                 }
-                Component name = colorize(args[1]);
-                final BookMeta bookMeta = (BookMeta) meta;
-                assert bookMeta != null;
-                bookMeta.author(name);
-                item.setItemMeta(bookMeta);
-                sender.sendMessage(mm.deserialize("<dark_green>The author of the book has been set to <white>'" + mm.serialize(name) + "<white>'"));
-                return true;
+                lines.remove(index - 1);
+                meta.lore(lines);
+                item.setItemMeta(meta);
+                send(player, "<dark_green>Line <white>'" + index + "<white>' <dark_green>removed from the item's lore");
             }
-            case "head" ->
+            case "change" ->
             {
-                if (!sender.hasPermission("itemizer.head"))
+                if (denied(player, "itemizer.lore.change"))
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                    return true;
+                    return;
                 }
-                if (args.length == 1)
+                if (args.length < 4)
                 {
-                    sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Head Command<white>]<dark_aqua>==============="));
-                    sender.sendMessage(mm.deserialize("<aqua>/itemizer head <<white>name<aqua>> <red>- <gold>Set the player of the head"));
-                    return true;
+                    usage(player, "Lore Commands", change);
+                    return;
                 }
-                if (item.getType() != Material.PLAYER_HEAD)
+                Integer index = loreIndex(player, lines, args[2]);
+                if (index == null)
                 {
-                    sender.sendMessage(mm.deserialize("<red>You do not have a Skull in your hand."));
-                    return true;
+                    return;
                 }
-                String name = args[1];
-                if (name.length() > 16)
-                {
-                    name = name.substring(0, 16);
-                }
-                final SkullMeta skullMeta = (SkullMeta) meta;
-                assert skullMeta != null;
-                skullMeta.setOwningPlayer(plugin.getServer().getOfflinePlayer(name));
-                item.setItemMeta(skullMeta);
-                sender.sendMessage(mm.deserialize("<dark_green>The player of the head has been set to <white>'" + name + "<white>'"));
-                return true;
+                Component line = colorize(StringUtils.join(args, " ", 3, args.length));
+                lines.set(index - 1, line);
+                meta.lore(lines);
+                item.setItemMeta(meta);
+                send(player, "<dark_green>Line <white>'" + index + "' <dark_green>has been changed to <white>'" + MM.serialize(line) + "<white>'");
             }
-            case "sign" ->
+            case "clear" ->
             {
-                if (!sender.hasPermission("itemizer.sign"))
+                if (denied(player, "itemizer.lore.clear"))
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                    return true;
+                    return;
+                }
+                if (lines.isEmpty())
+                {
+                    send(player, "<dark_red>The item has no lore.");
+                    return;
+                }
+                meta.lore(null);
+                item.setItemMeta(meta);
+                send(player, "<dark_green>The item's lore has been cleared!");
+            }
+            default -> unknown(player, "lore");
+        }
+    }
+
+    private Integer loreIndex(Player player, List<Component> lines, String input)
+    {
+        if (lines.isEmpty())
+        {
+            send(player, "<yellow>This item has no lore.");
+            return null;
+        }
+        Integer index = parseInt(player, input);
+        if (index != null && (index < 1 || index > lines.size()))
+        {
+            send(player, "<dark_red>The item's lore doesn't have line <white>'" + index + "'");
+            return null;
+        }
+        return index;
+    }
+
+    private void potion(Player player, ItemStack item, String[] args)
+    {
+        if (denied(player, "itemizer.potion"))
+        {
+            return;
+        }
+        String add = "<aqua>/itemizer potion add <<white>effect<aqua>> <<white>level<aqua>> <<white>ticks<aqua>> <red>- <gold>Add a potion effect";
+        String remove = "<aqua>/itemizer potion remove <<white>effect<aqua>> <red>- <gold>Remove a potion effect";
+        String change = "<aqua>/itemizer potion change <<white>potion|splash_potion|lingering_potion<aqua>> <red>- <gold>Change the potion type";
+        String color = "<aqua>/itemizer potion color <<white>#rrggbb<aqua>> <red>- <gold>Set the potion color";
+        String list = "<aqua>/itemizer potion list <red>- <gold>List all potion effects";
+        if (args.length == 1)
+        {
+            usage(player, "Potion Commands", add, remove, change, color, list);
+            return;
+        }
+        if (!POTIONS.contains(item.getType()))
+        {
+            send(player, "<red>You do not have a potion in your hand.");
+            return;
+        }
+
+        PotionMeta meta = (PotionMeta) item.getItemMeta();
+        switch (args[1].toLowerCase(Locale.ROOT))
+        {
+            case "add" ->
+            {
+                if (denied(player, "itemizer.potion.add"))
+                {
+                    return;
+                }
+                if (args.length < 5)
+                {
+                    usage(player, "Potion Commands", add);
+                    return;
+                }
+                PotionEffectType type = findEffect(args[2]);
+                if (type == null)
+                {
+                    send(player, "<dark_red>The potion effect <white>\"" + MM.escapeTags(args[2]) + "<white>\" <dark_red>does not exist!");
+                    return;
+                }
+                Integer level = parseInt(player, args[3]);
+                Integer ticks = parseInt(player, args[4]);
+                if (level == null || ticks == null)
+                {
+                    return;
+                }
+                if (level < 1 || level > 256 || ticks < 1)
+                {
+                    send(player, "<dark_red>The level must be from 1 to 256 and the duration at least 1 tick.");
+                    return;
+                }
+                if (meta.hasCustomEffect(type))
+                {
+                    send(player, "<dark_red>This potion already has <white>" + type.getKey());
+                    return;
+                }
+                meta.addCustomEffect(new PotionEffect(type, ticks, level - 1), false);
+                item.setItemMeta(meta);
+                send(player, "<white>" + type.getKey() + " <dark_green>has been added to the potion");
+            }
+            case "remove" ->
+            {
+                if (denied(player, "itemizer.potion.remove"))
+                {
+                    return;
+                }
+                if (args.length == 2)
+                {
+                    usage(player, "Potion Commands", remove);
+                    return;
+                }
+                PotionEffectType type = findEffect(args[2]);
+                if (type == null)
+                {
+                    send(player, "<dark_red>The potion effect <white>\"" + MM.escapeTags(args[2]) + "<white>\" <dark_red>does not exist!");
+                    return;
+                }
+                if (!meta.removeCustomEffect(type))
+                {
+                    send(player, "<dark_red>This potion does not have <white>" + type.getKey());
+                    return;
+                }
+                item.setItemMeta(meta);
+                send(player, "<white>" + type.getKey() + " <dark_green>has been removed from the potion");
+            }
+            case "change" ->
+            {
+                if (denied(player, "itemizer.potion.change"))
+                {
+                    return;
+                }
+                if (args.length == 2)
+                {
+                    usage(player, "Potion Commands", change);
+                    return;
+                }
+                Material material = Material.matchMaterial(args[2]);
+                if (material == null || !POTIONS.contains(material))
+                {
+                    send(player, "<white>'" + MM.escapeTags(args[2]) + "' <dark_red>is not a potion type!");
+                    return;
+                }
+                player.getInventory().setItemInMainHand(item.withType(material));
+                send(player, "<dark_green>The potion in hand has changed to <white>'" + material.getKey() + "'");
+            }
+            case "color" ->
+            {
+                if (denied(player, "itemizer.potion.color"))
+                {
+                    return;
                 }
                 if (args.length < 3)
                 {
-                    sender.sendMessage(mm.deserialize("<dark_aqua>===============<white>[<light_purple>Sign Commands<white>]<dark_aqua>==============="));
-                    sender.sendMessage(mm.deserialize("<aqua>/itemizer sign <<white>line<aqua>> <<white>text<aqua>> <red>- <gold>Change the line on the sign"));
-                    return true;
+                    usage(player, "Potion Commands", color);
+                    return;
                 }
-                final Block block = player.getTargetBlockExact(20);
-                if (block == null || block.getType() == Material.AIR || !block.getType().toString().contains("SIGN"))
+                Color parsed = parseColor(args[2]);
+                if (parsed == null)
                 {
-                    sender.sendMessage(mm.deserialize("<red>Please look at a sign!"));
-                    return true;
+                    send(player, "<dark_red>The color <white>\"" + MM.escapeTags(args[2]) + "<white>\" <dark_red>is not a hex color such as #ff8800!");
+                    return;
                 }
-                Integer line = parseInt(sender, args[1]);
-                if (line == null)
-                {
-                    return true;
-                }
-                else if (line < 1 || line > 4)
-                {
-                    sender.sendMessage(mm.deserialize("<dark_red>Sign lines must be between 1 and 4"));
-                    return true;
-                }
-                Component text = colorize(StringUtils.join(args, " ", 2, args.length));
-                if (cpb.getAPI() != null)
-                {
-                    cpb.getAPI().logRemoval(player.getName(), block.getLocation(), block.getType(), block.getBlockData());
-                }
-                Sign sign = (Sign) block.getState();
-                sign.getTargetSide(player).line(line - 1, text);
-                sign.update();
-                if (cpb.getAPI() != null)
-                {
-                    cpb.getAPI().logPlacement(player.getName(), sign.getLocation(), sign.getType(), sign.getBlockData());
-                }
-                sender.sendMessage(mm.deserialize("<dark_green>Line <white>'" + line + "<white>'<dark_green> has successfully changed to <white>'" + mm.serialize(text) + "<white>'"));
-                return true;
+                meta.setColor(parsed);
+                item.setItemMeta(meta);
+                send(player, "<white>" + args[2] + " <dark_green>has been set as the potion color");
             }
-            case "clearall" ->
+            case "list" ->
             {
-                if (!sender.hasPermission("itemizer.clearall"))
+                if (!denied(player, "itemizer.potion.list"))
                 {
-                    sender.sendMessage(mm.deserialize("<dark_red>You don't have permission to use this command!"));
-                    return true;
+                    send(player, "<dark_green>Available potion effects: <yellow>" + keys(Registry.MOB_EFFECT.stream()));
                 }
-                if (!hasItem)
-                {
-                    sender.sendMessage(mm.deserialize("<red>You do not have an item in your hand."));
-                    return true;
-                }
-                item.setItemMeta(null);
-                sender.sendMessage(mm.deserialize("<dark_green>All data cleared from your item"));
-                return true;
             }
-            default ->
-            {
-                sender.sendMessage(mm.deserialize("<aqua>Unknown sub-command. Type <gold><click:run_command:/itemizer help>/itemizer help</click> <aqua>for help."));
-                return true;
-            }
+            default -> unknown(player, "potion");
         }
     }
 
-    private Component colorize(String string)
+    private void attribute(Player player, ItemStack item, String[] args)
     {
-        Matcher matcher = Pattern.compile("&[a-fk-or0-9]", Pattern.CASE_INSENSITIVE).matcher(string);
+        if (denied(player, "itemizer.attr"))
+        {
+            return;
+        }
+        if (args.length == 1)
+        {
+            usage(player, "Attribute Commands",
+                    "<aqua>/itemizer attr add <<white>name<aqua>> <<white>amount<aqua>> [<white>operation<aqua>] [<white>slot group<aqua>] [<white>modifier key<aqua>] <red>- <gold>Add an attribute",
+                    "<aqua>/itemizer attr edit <<white>name<aqua>> <<white>amount<aqua>> [<white>operation<aqua>] [<white>slot group<aqua>] [<white>modifier key<aqua>] <red>- <gold>Edit an attribute modifier",
+                    "<aqua>/itemizer attr remove <<white>name<aqua>> [<white>modifier key<aqua>] <red>- <gold>Remove one or all matching modifiers",
+                    "<aqua>/itemizer attr list <red>- <gold>List the item's attributes",
+                    "<aqua>/itemizer attr listall <red>- <gold>List all supported attributes");
+            return;
+        }
+        if (!holding(player, item))
+        {
+            return;
+        }
+        switch (args[1].toLowerCase(Locale.ROOT))
+        {
+            case "add" ->
+            {
+                if (!denied(player, "itemizer.attr.add"))
+                {
+                    plugin.attributes.addAttr(player, args);
+                }
+            }
+            case "edit" ->
+            {
+                if (!denied(player, "itemizer.attr.edit"))
+                {
+                    plugin.attributes.editAttr(player, args);
+                }
+            }
+            case "remove" ->
+            {
+                if (!denied(player, "itemizer.attr.remove"))
+                {
+                    plugin.attributes.removeAttr(player, args);
+                }
+            }
+            case "list" ->
+            {
+                if (!denied(player, "itemizer.attr.list"))
+                {
+                    plugin.attributes.listAttr(player);
+                }
+            }
+            case "listall" ->
+            {
+                if (!denied(player, "itemizer.attr.listall"))
+                {
+                    send(player, "<dark_green>Supported attributes: <yellow>" + Attributes.all());
+                }
+            }
+            default -> unknown(player, "attr");
+        }
+    }
+
+    private void flag(Player player, ItemStack item, String[] args)
+    {
+        if (denied(player, "itemizer.flag"))
+        {
+            return;
+        }
+        String add = "<aqua>/itemizer flag add <<white>name<aqua>> <red>- <gold>Add a flag";
+        String remove = "<aqua>/itemizer flag remove <<white>name<aqua>> <red>- <gold>Remove a flag";
+        if (args.length == 1)
+        {
+            usage(player, "Flag Commands", add, remove,
+                    "<aqua>/itemizer flag list <red>- <gold>List the item's flags",
+                    "<aqua>/itemizer flag listall <red>- <gold>List all available flags");
+            return;
+        }
+        if (!holding(player, item))
+        {
+            return;
+        }
+
+        ItemMeta meta = item.getItemMeta();
+        switch (args[1].toLowerCase(Locale.ROOT))
+        {
+            case "add", "remove" ->
+            {
+                boolean adding = args[1].equalsIgnoreCase("add");
+                if (denied(player, adding ? "itemizer.flag.add" : "itemizer.flag.remove"))
+                {
+                    return;
+                }
+                if (args.length == 2)
+                {
+                    usage(player, "Flag Commands", adding ? add : remove);
+                    return;
+                }
+                ItemFlag flag = parseFlag(args[2]);
+                if (flag == null)
+                {
+                    send(player, "<dark_red>The flag <white>\"" + MM.escapeTags(args[2]) + "<white>\" <dark_red>does not exist!");
+                    return;
+                }
+                String name = flag.name().toLowerCase(Locale.ROOT);
+                if (meta.hasItemFlag(flag) == adding)
+                {
+                    send(player, adding
+                            ? "<dark_red>The flag <white>'" + name + "' <dark_red>is already on the item!"
+                            : "<dark_red>The flag <white>'" + name + "' <dark_red>is not on the item!");
+                    return;
+                }
+                if (adding)
+                {
+                    meta.addItemFlags(flag);
+                }
+                else
+                {
+                    meta.removeItemFlags(flag);
+                }
+                item.setItemMeta(meta);
+                send(player, "<dark_green>The flag <white>'" + name + "' <dark_green>has been " + (adding ? "added to" : "removed from") + " your item!");
+            }
+            case "list" ->
+            {
+                if (denied(player, "itemizer.flag.list"))
+                {
+                    return;
+                }
+                if (meta.getItemFlags().isEmpty())
+                {
+                    send(player, "<dark_red>The item in your hand does not have any flags");
+                    return;
+                }
+                send(player, "<dark_green>Item flags: <yellow>" + flagNames(meta.getItemFlags().stream()));
+            }
+            case "listall" ->
+            {
+                if (!denied(player, "itemizer.flag.listall"))
+                {
+                    send(player, "<dark_green>Available item flags: <yellow>" + flagNames(Arrays.stream(ItemFlag.values())));
+                }
+            }
+            default -> unknown(player, "flag");
+        }
+    }
+
+    private void enchant(Player player, ItemStack item, String[] args)
+    {
+        if (denied(player, "itemizer.enchant"))
+        {
+            return;
+        }
+        if (args.length == 1)
+        {
+            usage(player, "Enchant Commands",
+                    "<aqua>/itemizer enchant add <<white>name<aqua>> <<white>level<aqua>> <red>- <gold>Add an enchantment",
+                    "<aqua>/itemizer enchant remove <<white>name<aqua>> <red>- <gold>Remove an enchantment",
+                    "<aqua>/itemizer enchant list <red>- <gold>List the item's enchantments",
+                    "<aqua>/itemizer enchant listall <red>- <gold>List all available enchantments");
+            return;
+        }
+        if (!holding(player, item))
+        {
+            return;
+        }
+        switch (args[1].toLowerCase(Locale.ROOT))
+        {
+            case "add" ->
+            {
+                if (!denied(player, "itemizer.enchant.add"))
+                {
+                    plugin.enchantments.addEnchantment(player, item, args);
+                }
+            }
+            case "remove" ->
+            {
+                if (!denied(player, "itemizer.enchant.remove"))
+                {
+                    plugin.enchantments.removeEnchantment(player, item, args);
+                }
+            }
+            case "list" ->
+            {
+                if (denied(player, "itemizer.enchant.list"))
+                {
+                    return;
+                }
+                if (item.getEnchantments().isEmpty())
+                {
+                    send(player, "<dark_red>This item doesn't hold any enchantments");
+                    return;
+                }
+                send(player, "<dark_green>Item enchantments: <yellow>" + item.getEnchantments().entrySet().stream()
+                        .map(entry -> entry.getKey().getKey().getKey() + " " + entry.getValue())
+                        .collect(Collectors.joining(", ")));
+            }
+            case "listall" ->
+            {
+                if (!denied(player, "itemizer.enchant.listall"))
+                {
+                    send(player, "<dark_green>Available enchantments: <yellow>"
+                            + keys(RegistryAccess.registryAccess().getRegistry(RegistryKey.ENCHANTMENT).stream()));
+                }
+            }
+            default -> unknown(player, "enchant");
+        }
+    }
+
+    private void title(Player player, ItemStack item, String[] args)
+    {
+        if (denied(player, "itemizer.title"))
+        {
+            return;
+        }
+        if (args.length == 1)
+        {
+            usage(player, "Title Command", "<aqua>/itemizer title <<white>name<aqua>> <red>- <gold>Set the book's title");
+            return;
+        }
+        if (item.getType() != Material.WRITTEN_BOOK)
+        {
+            send(player, "<red>You do not have a written book in your hand.");
+            return;
+        }
+        Component title = colorize(StringUtils.join(args, " ", 1, args.length));
+        item.editMeta(BookMeta.class, meta -> meta.title(title));
+        send(player, "<dark_green>The title of the book has been set to <white>'" + MM.serialize(title) + "<white>'");
+    }
+
+    private void author(Player player, ItemStack item, String[] args)
+    {
+        if (denied(player, "itemizer.author"))
+        {
+            return;
+        }
+        if (args.length == 1)
+        {
+            usage(player, "Author Command", "<aqua>/itemizer author <<white>name<aqua>> <red>- <gold>Set the book's author");
+            return;
+        }
+        if (item.getType() != Material.WRITTEN_BOOK)
+        {
+            send(player, "<red>You do not have a written book in your hand.");
+            return;
+        }
+        Component author = colorize(StringUtils.join(args, " ", 1, args.length));
+        item.editMeta(BookMeta.class, meta -> meta.author(author));
+        send(player, "<dark_green>The author of the book has been set to <white>'" + MM.serialize(author) + "<white>'");
+    }
+
+    private void head(Player player, ItemStack item, String[] args)
+    {
+        if (denied(player, "itemizer.head"))
+        {
+            return;
+        }
+        if (args.length == 1)
+        {
+            usage(player, "Head Command", "<aqua>/itemizer head <<white>name<aqua>> <red>- <gold>Set the player of the head");
+            return;
+        }
+        if (item.getType() != Material.PLAYER_HEAD)
+        {
+            send(player, "<red>You do not have a player head in your hand.");
+            return;
+        }
+        String name = args[1];
+        if (!PLAYER_NAME.matcher(name).matches())
+        {
+            send(player, "<dark_red>Player names use 1 to 16 letters, numbers, or underscores.");
+            return;
+        }
+        // The profile holds only the name; the server fills in the skin without blocking this thread.
+        item.editMeta(SkullMeta.class, meta -> meta.setPlayerProfile(Bukkit.createProfile(name)));
+        send(player, "<dark_green>The player of the head has been set to <white>'" + name + "<white>'");
+    }
+
+    private void sign(Player player, String[] args)
+    {
+        if (denied(player, "itemizer.sign"))
+        {
+            return;
+        }
+        if (args.length < 3)
+        {
+            usage(player, "Sign Commands", "<aqua>/itemizer sign <<white>line<aqua>> <<white>text<aqua>> <red>- <gold>Change a line of the sign you look at");
+            return;
+        }
+        Block block = player.getTargetBlockExact(20);
+        if (block == null || !(block.getState() instanceof Sign sign))
+        {
+            send(player, "<red>Please look at a sign!");
+            return;
+        }
+        Integer line = parseInt(player, args[1]);
+        if (line == null)
+        {
+            return;
+        }
+        if (line < 1 || line > 4)
+        {
+            send(player, "<dark_red>Sign lines must be between 1 and 4");
+            return;
+        }
+
+        BlockState before = block.getState();
+        Component text = colorize(StringUtils.join(args, " ", 2, args.length));
+        sign.getTargetSide(player).line(line - 1, text);
+        sign.update();
+        plugin.logSignEdit(player, before, block.getState());
+        send(player, "<dark_green>Line <white>'" + line + "<white>'<dark_green> has been changed to <white>'" + MM.serialize(text) + "<white>'");
+    }
+
+    private static boolean denied(CommandSender sender, String permission)
+    {
+        if (sender.hasPermission(permission))
+        {
+            return false;
+        }
+        send(sender, "<dark_red>You don't have permission to use this command!");
+        return true;
+    }
+
+    private static boolean holding(Player player, ItemStack item)
+    {
+        if (!item.getType().isAir())
+        {
+            return true;
+        }
+        send(player, "<red>You do not have an item in your hand.");
+        return false;
+    }
+
+    private static void usage(CommandSender sender, String title, String... lines)
+    {
+        send(sender, "<dark_aqua>===============<white>[<light_purple>" + title + "<white>]<dark_aqua>===============");
+        for (String line : lines)
+        {
+            send(sender, line);
+        }
+    }
+
+    private static void unknown(CommandSender sender, String command)
+    {
+        String path = command.equals("help") ? "/itemizer help" : "/itemizer " + command;
+        send(sender, "<aqua>Unknown sub-command. Type <gold><click:run_command:" + path + ">" + path + "</click> <aqua>for help.");
+    }
+
+    private static void send(CommandSender sender, String miniMessage)
+    {
+        sender.sendMessage(MM.deserialize(miniMessage));
+    }
+
+    /** Reads {@code &} color codes and MiniMessage tags alike. */
+    private static Component colorize(String input)
+    {
+        Matcher matcher = LEGACY_CODE.matcher(input);
+        StringBuilder result = new StringBuilder();
         while (matcher.find())
         {
-            String color = matcher.group();
-            string = string.replace(color, COLOR_TRANSLATION.getOrDefault(color.toLowerCase(), color));
+            matcher.appendReplacement(result, Matcher.quoteReplacement(LEGACY_TAGS.get(matcher.group().toLowerCase(Locale.ROOT))));
         }
-        return mm.deserialize(string);
+        matcher.appendTail(result);
+        return MM.deserialize(result.toString());
     }
 
-    private Integer parseInt(CommandSender sender, String string)
+    private static Integer parseInt(CommandSender sender, String input)
     {
         try
         {
-            return Integer.parseInt(string);
+            return Integer.parseInt(input);
         }
         catch (NumberFormatException ex)
         {
-            sender.sendMessage(mm.deserialize("<white>\"" + string + "<white>\"<dark_red> is not a valid number!"));
+            send(sender, "<white>\"" + MM.escapeTags(input) + "<white>\"<dark_red> is not a valid number!");
+            return null;
         }
-        return null;
     }
 
-    private PotionEffectType findPotionEffect(String input)
+    private static Color parseColor(String input)
+    {
+        String hex = input.startsWith("#") ? input.substring(1) : input;
+        if (!hex.matches("[0-9a-fA-F]{6}"))
+        {
+            return null;
+        }
+        return Color.fromRGB(Integer.parseInt(hex, 16));
+    }
+
+    private static ItemFlag parseFlag(String input)
+    {
+        try
+        {
+            return ItemFlag.valueOf(input.toUpperCase(Locale.ROOT));
+        }
+        catch (IllegalArgumentException ex)
+        {
+            return null;
+        }
+    }
+
+    private static PotionEffectType findEffect(String input)
     {
         String value = input.toLowerCase(Locale.ROOT);
         NamespacedKey key = NamespacedKey.fromString(value.contains(":") ? value : "minecraft:" + value);
         return key == null ? null : Registry.MOB_EFFECT.get(key);
+    }
+
+    private static String keys(java.util.stream.Stream<? extends Keyed> entries)
+    {
+        return entries.map(entry -> entry.getKey().getKey()).sorted().collect(Collectors.joining(", "));
+    }
+
+    private static String flagNames(java.util.stream.Stream<ItemFlag> flags)
+    {
+        return flags.map(flag -> flag.name().toLowerCase(Locale.ROOT)).sorted().collect(Collectors.joining(", "));
     }
 }

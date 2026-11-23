@@ -14,10 +14,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Stream;
 
-public final class ItemizerXTab
+final class ItemizerXTab
 {
     static final List<String> ROOT = List.of("help", "name", "id", "amount", "undo", "redo", "lore", "potion", "attr",
             "flag", "enchant", "property", "component", "data", "container", "preset", "gui", "dialog", "inventory", "title", "author", "head", "sign", "clearall");
+
+    private final ItemizerX plugin;
+
+    ItemizerXTab(ItemizerX plugin)
+    {
+        this.plugin = plugin;
+    }
 
     public List<String> complete(CommandSender sender, String[] args)
     {
@@ -63,14 +70,12 @@ public final class ItemizerXTab
         };
     }
 
-    private static Stream<String> thirdArgument(CommandSender sender, String root, String action)
+    private Stream<String> thirdArgument(CommandSender sender, String root, String action)
     {
         if ((root.equalsIgnoreCase("preset") || root.equalsIgnoreCase("presets"))
                 && (action.equalsIgnoreCase("load") || action.equalsIgnoreCase("delete") || action.equalsIgnoreCase("export")))
         {
-            ItemizerX plugin = ItemizerX.plugin;
-            return sender instanceof Player player && plugin != null && plugin.presets != null
-                    ? plugin.presets.names(player.getUniqueId()).stream() : Stream.empty();
+            return sender instanceof Player player ? plugin.presets.names(player.getUniqueId()).stream() : Stream.empty();
         }
         if ((root.equalsIgnoreCase("data") || root.equalsIgnoreCase("pdc"))
                 && (action.equalsIgnoreCase("get") || action.equalsIgnoreCase("set") || action.equalsIgnoreCase("remove")))
